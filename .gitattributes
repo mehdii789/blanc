@@ -1,0 +1,15 @@
+# Définir le comportement par défaut pour tous les fichiers
+* text=auto eol=lf
+
+# Spécifier les fichiers binaires
+*.{png,jpg,jpeg,gif,ico,svg,woff,woff2,ttf,eot,otf} binary
+
+# Spécifier les fichiers qui doivent avoir des fins de ligne CRLF
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
+
+# Fichiers de configuration Windows
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.filters text eol=crlf
+*.vcxproj.user text eol=crlf
