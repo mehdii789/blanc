@@ -60,12 +60,45 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export // Fonction pour charger les données depuis le localStorage
+export // Fonction pour convertir les chaînes de date en objets Date
+const parseDates = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => parseDates(item));
+  }
+
+  const result: Record<string, any> = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      
+      // Vérifier si la clé se termine par 'At' (comme createdAt, updatedAt)
+      // ou si la valeur ressemble à une date ISO
+      if ((key.endsWith('At') || key === 'date') && typeof value === 'string') {
+        const date = new Date(value);
+        result[key] = isNaN(date.getTime()) ? value : date;
+      } else if (value && typeof value === 'object') {
+        result[key] = parseDates(value);
+      } else {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+};
+
+// Fonction pour charger les données depuis le localStorage
 const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
-  if (typeof window === 'undefined') return defaultValue;
   try {
     const item = window.localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
+    if (!item) return defaultValue;
+    
+    const parsed = JSON.parse(item);
+    // Convertir les chaînes de date en objets Date
+    return parseDates(parsed);
   } catch (error) {
     console.error(`Erreur lors du chargement de ${key} depuis le localStorage:`, error);
     return defaultValue;
