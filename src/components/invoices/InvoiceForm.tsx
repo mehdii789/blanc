@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatCurrency } from '../../utils/formatters';
-import { Invoice } from '../../types';
+import { Invoice, InvoiceItem } from '../../types';
 import { useEffect } from 'react';
 
 interface InvoiceFormData extends Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'> {
@@ -93,17 +93,19 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
         items: [{ id: `item_${Date.now()}`, description: '', quantity: 1, unitPrice: 0, total: 0 }],
         subtotal: 0,
         tax: 0,
-        total: 0
+        total: 0,
+        discount: 0
       }));
       return;
     }
 
     const selectedOrder = orders.find(order => order.id === orderId);
     if (selectedOrder) {
-      let invoiceItems: any[] = [];
+      let invoiceItems: InvoiceItem[] = [];
       
       // Vérifier que la commande a bien des items ou services
-      if (!selectedOrder.items?.length && !selectedOrder.services?.length) {
+      if ((!selectedOrder.items || selectedOrder.items.length === 0) && 
+          (!selectedOrder.services || selectedOrder.services.length === 0)) {
         alert('Cette commande ne contient aucun article ou service.');
         return;
       }
@@ -119,14 +121,15 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
         }));
       } 
       // Sinon utiliser les services
-      else if (selectedOrder.services && selectedOrder.services.length > 0) {
-        invoiceItems = selectedOrder.services.map((service, index) => ({
-          id: `item_${Date.now()}_${index}`,
+      if (selectedOrder.services && selectedOrder.services.length > 0) {
+        const serviceItems = selectedOrder.services.map((service, index) => ({
+          id: `item_${Date.now()}_${index}_s`,
           description: service.name || 'Service sans nom',
-          quantity: service.quantity || 1,
+          quantity: 1, // Les services sont généralement facturés à l'unité
           unitPrice: service.price || 0,
-          total: (service.quantity || 1) * (service.price || 0)
+          total: service.price || 0
         }));
+        invoiceItems = [...invoiceItems, ...serviceItems];
       }
 
       const subtotal = invoiceItems.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -143,7 +146,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
         total,
         discount: 0,
         issueDate: new Date(),
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 jours plus tard
       }));
     }
   };

@@ -26,10 +26,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
-    "@types/node": "^22.15.29",
-    "@types/react": "^18.3.5",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@types/node": "^22.17.2",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react-swc": "^4.0.1",
     "autoprefixer": "^10.4.18",
     "eslint": "^9.9.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
@@ -37,9 +38,22 @@
     "globals": "^15.9.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.5.3",
+    "typescript": "^5.9.2",
     "typescript-eslint": "^8.3.0",
     "vite": "^5.4.2",
     "vite-plugin-html": "^3.2.2"
-  }
+  },
+  "description": "",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mehdii789/blanc.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mehdii789/blanc/issues"
+  },
+  "homepage": "https://github.com/mehdii789/blanc#readme"
 }
