@@ -30,7 +30,7 @@ interface PaymentStats {
 }
 
 export const PaymentsPage: React.FC = () => {
-  const { orders, customers } = useApp();
+  const { orders, customers, invoices } = useApp();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('month');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | 'all'>('all');
@@ -67,9 +67,27 @@ export const PaymentsPage: React.FC = () => {
     return <Icon size={16} />;
   };
 
-  // Filtrer les commandes selon la période
+  // Créer un ensemble des IDs de commandes avec facture payée
+  const paidOrderIds = React.useMemo(() => new Set(
+    invoices
+      .filter(invoice => invoice.status === 'paid')
+      .map(invoice => invoice.orderId)
+      .filter(Boolean)
+  ), [invoices]);
+  
+  // Filtrer les commandes et factures selon la période
   const getFilteredOrders = useMemo(() => {
-    return orders.filter(order => {
+    return orders.map(order => {
+      // Vérifier si une facture payée existe pour cette commande
+      const hasPaidInvoice = paidOrderIds.has(order.id);
+      
+      // Si une facture payée existe, mettre à jour le statut de la commande
+      if (hasPaidInvoice && !order.paid) {
+        return { ...order, paid: true };
+      }
+      
+      return order;
+    }).filter(order => {
       // Filtre par date
       const orderDate = new Date(order.createdAt);
       const now = new Date();
@@ -100,7 +118,7 @@ export const PaymentsPage: React.FC = () => {
       
       return matchesTime && matchesSearch && matchesPaymentMethod;
     });
-  }, [orders, timeFilter, searchTerm, selectedPaymentMethod, customers]);
+  }, [orders, timeFilter, searchTerm, selectedPaymentMethod, customers, invoices]);
 
   const paidOrders = getFilteredOrders.filter(order => order.paid);
   const pendingOrders = getFilteredOrders.filter(order => !order.paid);
@@ -405,7 +423,7 @@ export const PaymentsPage: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-gray-500">Méthode</span>
-                      <p className="font-medium text-gray-900">{getPaymentMethodLabel(getPaymentMethod(order.id))}</p>
+                      <p className="font-medium text-gray-900">{getPaymentMethodLabel(getPaymentMethod(order))}</p>
                     </div>
                     <div>
                       <span className="text-gray-500">Statut</span>

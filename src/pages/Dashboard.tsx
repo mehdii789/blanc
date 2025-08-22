@@ -17,78 +17,94 @@ import { InventoryAlert } from '../components/dashboard/InventoryAlert';
 import { DateRangeSelector } from '../components/dashboard/DateRangeSelector';
 import { formatCurrency } from '../utils/formatters';
 
-// Fonction pour vérifier si une date est dans une plage donnée
+// Fonction utilitaire pour vérifier si une date est dans une plage donnée
 const isDateInRange = (date: Date, startDate: Date, endDate: Date) => {
   const time = date.getTime();
   return time >= startDate.getTime() && time <= endDate.getTime();
 };
 
-// Fonction pour calculer les statistiques du tableau de bord
-const calculateDashboardStats = (orders: any[], customers: any[], startDate: Date, endDate: Date) => {
-  // Filtrer les commandes dans la période (pour le comptage des commandes)
-  const periodOrders = orders.filter(order => {
-    if (!order.createdAt) return false;
-    
-    // Gérer à la fois les chaînes de caractères et les objets Date
-    const orderDate = order.createdAt instanceof Date 
-      ? order.createdAt 
-      : new Date(order.createdAt);
+// Hook personnalisé pour calculer les statistiques du tableau de bord
+const useDashboardStats = (orders: any[], customers: any[], invoices: any[], startDate: Date, endDate: Date) => {
+  return useMemo(() => {
+    // Créer un ensemble des IDs de commandes avec facture payée
+    const paidOrderIds = new Set(
+      invoices
+        .filter(invoice => invoice.status === 'paid')
+        .map(invoice => invoice.orderId)
+        .filter(Boolean)
+    );
+
+    // Mettre à jour les commandes avec le statut de paiement des factures
+    const enhancedOrders = orders.map(order => {
+      const hasPaidInvoice = paidOrderIds.has(order.id);
+      return hasPaidInvoice ? { ...order, paid: true } : order;
+    });
+
+    // Filtrer les commandes dans la période (pour le comptage des commandes)
+    const periodOrders = enhancedOrders.filter(order => {
+      if (!order.createdAt) return false;
       
-    return !isNaN(orderDate.getTime()) && isDateInRange(orderDate, startDate, endDate);
-  });
-  
-  // Calculer le revenu de la période à partir des commandes payées
-  const periodRevenue = orders.reduce((sum, order) => {
-    // Vérifier si la commande est payée et dans la période
-    if (!order.paid) return sum;
+      // Gérer à la fois les chaînes de caractères et les objets Date
+      const orderDate = order.createdAt instanceof Date 
+        ? order.createdAt 
+        : new Date(order.createdAt);
+        
+      return !isNaN(orderDate.getTime()) && isDateInRange(orderDate, startDate, endDate);
+    });
     
-    const orderDate = order.updatedAt instanceof Date 
-      ? order.updatedAt 
-      : new Date(order.updatedAt);
+    // Calculer le revenu de la période à partir des commandes payées (y compris via facture)
+    const periodRevenue = enhancedOrders.reduce((sum, order) => {
+      // Vérifier si la commande est payée (directement ou via facture) et dans la période
+      if (!order.paid && !paidOrderIds.has(order.id)) return sum;
       
-    if (isNaN(orderDate.getTime()) || !isDateInRange(orderDate, startDate, endDate)) {
-      return sum;
-    }
+      const orderDate = order.updatedAt instanceof Date 
+        ? order.updatedAt 
+        : new Date(order.updatedAt);
+        
+      if (isNaN(orderDate.getTime()) || !isDateInRange(orderDate, startDate, endDate)) {
+        return sum;
+      }
+      
+      return sum + (typeof order.totalAmount === 'number' ? order.totalAmount : 0);
+    }, 0);
     
-    return sum + (typeof order.totalAmount === 'number' ? order.totalAmount : 0);
-  }, 0);
-  
-  // Calculer les statistiques
-  const pendingOrders = orders.filter(order => 
-    ['en_attente', 'en_traitement', 'lavage', 'sechage', 'pliage'].includes(order.status)
-  ).length;
-  
-  const readyForPickup = orders.filter(order => 
-    order.status === 'pret' && !order.paid
-  ).length;
-  
-  // Calculer le nombre de commandes par statut pour le graphique
-  const ordersByStatus = orders.reduce((acc, order) => {
-    acc[order.status] = (acc[order.status] || 0) + 1;
-    return acc;
-  }, {} as Record<OrderStatus, number>);
-  
-  // Récupérer les 5 commandes les plus récentes
-  const recentOrders = [...orders]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
-  
-  // Calculer le nombre total de commandes en additionnant toutes les commandes par statut
-  const orderCount = periodOrders.length;
-  
-  return {
-    periodRevenue,
-    pendingOrders,
-    readyForPickup,
-    totalCustomers: customers.length,
-    ordersByStatus,
-    recentOrders,
-    orderCount,
-  };
+    // Calculer le nombre de commandes en attente
+    const pendingOrders = enhancedOrders.filter(order => 
+      ['en_attente', 'en_traitement', 'lavage', 'sechage', 'pliage'].includes(order.status)
+    ).length;
+    
+    const readyForPickup = enhancedOrders.filter(order => 
+      order.status === 'pret' && !order.paid
+    ).length;
+    
+    // Calculer le nombre de commandes par statut pour le graphique
+    const ordersByStatus = enhancedOrders.reduce((acc, order) => {
+      acc[order.status] = (acc[order.status] || 0) + 1;
+      return acc;
+    }, {} as Record<OrderStatus, number>);
+    
+    // Récupérer les 5 commandes les plus récentes
+    const recentOrders = [...enhancedOrders]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+    
+    // Calculer le nombre total de commandes dans la période
+    const orderCount = periodOrders.length;
+    
+    return {
+      periodRevenue,
+      pendingOrders,
+      readyForPickup,
+      totalCustomers: customers.length,
+      ordersByStatus,
+      recentOrders,
+      orderCount,
+    };
+  }, [orders, customers, invoices, startDate, endDate]);
 };
 
 export const Dashboard: React.FC = () => {
-  const { orders, customers, dateRange } = useApp();
+  const { orders, customers, dateRange, invoices } = useApp();
   
   // Utiliser la plage de dates sélectionnée depuis le contexte
   const periodStart = dateRange.start;
@@ -113,11 +129,8 @@ export const Dashboard: React.FC = () => {
     return `${startStr} - ${endStr}`;
   }, [periodStart, periodEnd]);
   
-  // Calculer les statistiques en utilisant useMemo pour optimiser les performances
-  const stats = useMemo(() => 
-    calculateDashboardStats(orders, customers, periodStart, periodEnd),
-    [orders, customers, periodStart, periodEnd]
-  );
+  // Calculer les statistiques
+  const stats = useDashboardStats(orders, customers, invoices, periodStart, periodEnd);
   
   // Calculer la tendance des revenus (exemple: +8% par rapport à la période précédente)
   const revenueTrend = useMemo(() => {

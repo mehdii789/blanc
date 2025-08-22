@@ -16,14 +16,23 @@ export interface OrderService extends Service {
   quantity: number;
 }
 
+export interface OrderItem {
+  id: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
 export interface Order {
   id: string;
   customerId: string;
   services: OrderService[];
+  items?: OrderItem[];
   status: OrderStatus;
   totalAmount: number;
   paid: boolean;
-  paymentMethod: PaymentMethod;
+  paymentMethod?: PaymentMethod;
   notes: string;
   createdAt: Date;
   updatedAt: Date;

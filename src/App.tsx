@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { AppProvider } from './context/AppContext';
+import './utils/mockApi'; // Intercept external API requests
 import { Dashboard } from './pages/Dashboard';
 import { CustomersPage } from './pages/CustomersPage';
 import { OrdersPage } from './pages/OrdersPage';

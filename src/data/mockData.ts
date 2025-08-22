@@ -1,4 +1,4 @@
-import { Customer, Order, Service, Employee, InventoryItem } from '../types';
+import { Customer, Order, Service, Employee, InventoryItem, Invoice } from '../types';
 
 export const mockCustomers: Customer[] = [
   {
@@ -100,10 +100,15 @@ export const mockOrders: Order[] = [
   {
     id: '1',
     customerId: '1',
-    services: [mockServices[0], mockServices[4]],
+    services: [{ ...mockServices[0], quantity: 10 }, { ...mockServices[4], quantity: 5 }],
+    items: [
+      { id: 'item_1_1', productName: 'Lavage & Pliage', quantity: 10, unitPrice: 2.50, total: 25.00 },
+      { id: 'item_1_2', productName: 'Repassage', quantity: 5, unitPrice: 3.00, total: 15.00 }
+    ],
     status: 'pret',
     totalAmount: 35.50,
     paid: true,
+    paymentMethod: 'card',
     notes: '10 kilos de linge + 5 chemises à repasser',
     createdAt: new Date('2025-08-15T10:30:00'),
     updatedAt: new Date('2025-08-16T14:15:00'),
@@ -112,10 +117,14 @@ export const mockOrders: Order[] = [
   {
     id: '2',
     customerId: '2',
-    services: [mockServices[1]],
+    services: [{ ...mockServices[1], quantity: 7 }],
+    items: [
+      { id: 'item_2_1', productName: 'Nettoyage à sec', quantity: 7, unitPrice: 6.00, total: 42.00 }
+    ],
     status: 'en_traitement',
     totalAmount: 42.00,
     paid: false,
+    paymentMethod: 'cash',
     notes: '7 articles pour nettoyage à sec',
     createdAt: new Date('2025-08-16T09:15:00'),
     updatedAt: new Date('2025-08-16T11:30:00'),
@@ -124,10 +133,15 @@ export const mockOrders: Order[] = [
   {
     id: '3',
     customerId: '3',
-    services: [mockServices[0], mockServices[2]],
+    services: [{ ...mockServices[0], quantity: 5 }, { ...mockServices[2], quantity: 6 }],
+    items: [
+      { id: 'item_3_1', productName: 'Lavage & Pliage', quantity: 5, unitPrice: 2.50, total: 12.50 },
+      { id: 'item_3_2', productName: 'Lavage Express', quantity: 6, unitPrice: 3.50, total: 21.00 }
+    ],
     status: 'lavage',
     totalAmount: 28.75,
     paid: true,
+    paymentMethod: 'transfer',
     notes: 'Réparti entre normal et express',
     createdAt: new Date('2025-08-14T14:45:00'),
     updatedAt: new Date('2025-08-15T15:30:00'),
@@ -136,10 +150,14 @@ export const mockOrders: Order[] = [
   {
     id: '4',
     customerId: '4',
-    services: [mockServices[3]],
+    services: [{ ...mockServices[3], quantity: 2 }],
+    items: [
+      { id: 'item_4_1', productName: 'Literie', quantity: 2, unitPrice: 15.00, total: 30.00 }
+    ],
     status: 'en_attente',
     totalAmount: 30.00,
     paid: false,
+    paymentMethod: 'check',
     notes: '2 couettes',
     createdAt: new Date('2025-08-13T16:20:00'),
     updatedAt: new Date('2025-08-13T16:20:00'),
@@ -148,10 +166,15 @@ export const mockOrders: Order[] = [
   {
     id: '5',
     customerId: '5',
-    services: [mockServices[0], mockServices[4]],
+    services: [{ ...mockServices[0], quantity: 15 }, { ...mockServices[4], quantity: 2 }],
+    items: [
+      { id: 'item_5_1', productName: 'Lavage & Pliage', quantity: 15, unitPrice: 2.50, total: 37.50 },
+      { id: 'item_5_2', productName: 'Repassage', quantity: 2, unitPrice: 3.00, total: 6.00 }
+    ],
     status: 'pliage',
     totalAmount: 40.25,
     paid: true,
+    paymentMethod: 'card',
     notes: '15 kilos de linge + 2 chemises à repasser',
     createdAt: new Date('2025-08-12T11:15:00'),
     updatedAt: new Date('2025-08-14T13:45:00'),
@@ -160,10 +183,14 @@ export const mockOrders: Order[] = [
   {
     id: '6',
     customerId: '1',
-    services: [mockServices[2]],
+    services: [{ ...mockServices[2], quantity: 6 }],
+    items: [
+      { id: 'item_6_1', productName: 'Lavage Express', quantity: 6, unitPrice: 3.50, total: 21.00 }
+    ],
     status: 'livre',
     totalAmount: 21.00,
     paid: true,
+    paymentMethod: 'cash',
     notes: '6 kilos express',
     createdAt: new Date('2025-08-10T08:30:00'),
     updatedAt: new Date('2025-08-10T18:15:00'),
@@ -172,10 +199,14 @@ export const mockOrders: Order[] = [
   {
     id: '7',
     customerId: '3',
-    services: [mockServices[1], mockServices[4]],
+    services: [{ ...mockServices[1], quantity: 9 }, { ...mockServices[4], quantity: 0 }],
+    items: [
+      { id: 'item_7_1', productName: 'Nettoyage à sec', quantity: 9, unitPrice: 6.00, total: 54.00 }
+    ],
     status: 'pret',
     totalAmount: 54.00,
     paid: false,
+    paymentMethod: 'transfer',
     notes: '9 articles nettoyage à sec + repassage',
     createdAt: new Date('2025-08-08T14:20:00'),
     updatedAt: new Date('2025-08-11T16:30:00'),
@@ -184,10 +215,14 @@ export const mockOrders: Order[] = [
   {
     id: '8',
     customerId: '2',
-    services: [mockServices[0]],
+    services: [{ ...mockServices[0], quantity: 7 }],
+    items: [
+      { id: 'item_8_1', productName: 'Lavage & Pliage', quantity: 7, unitPrice: 2.50, total: 17.50 }
+    ],
     status: 'livre',
     totalAmount: 17.50,
     paid: true,
+    paymentMethod: 'card',
     notes: '7 kilos de linge standard',
     createdAt: new Date('2025-07-28T10:45:00'),
     updatedAt: new Date('2025-07-30T14:20:00'),
@@ -196,10 +231,15 @@ export const mockOrders: Order[] = [
   {
     id: '9',
     customerId: '4',
-    services: [mockServices[3], mockServices[0]],
+    services: [{ ...mockServices[3], quantity: 1 }, { ...mockServices[0], quantity: 7 }],
+    items: [
+      { id: 'item_9_1', productName: 'Literie', quantity: 1, unitPrice: 15.00, total: 15.00 },
+      { id: 'item_9_2', productName: 'Lavage & Pliage', quantity: 7, unitPrice: 2.50, total: 17.50 }
+    ],
     status: 'livre',
     totalAmount: 32.50,
     paid: true,
+    paymentMethod: 'cash',
     notes: '1 couette + 7 kilos linge',
     createdAt: new Date('2025-07-25T16:10:00'),
     updatedAt: new Date('2025-07-27T12:45:00'),
@@ -208,14 +248,80 @@ export const mockOrders: Order[] = [
   {
     id: '10',
     customerId: '5',
-    services: [mockServices[4]],
+    services: [{ ...mockServices[4], quantity: 8 }],
+    items: [
+      { id: 'item_10_1', productName: 'Repassage', quantity: 8, unitPrice: 3.00, total: 24.00 }
+    ],
     status: 'livre',
     totalAmount: 24.00,
     paid: true,
+    paymentMethod: 'check',
     notes: '8 chemises à repasser',
     createdAt: new Date('2025-07-20T09:30:00'),
     updatedAt: new Date('2025-07-21T15:15:00'),
     dueDate: new Date('2025-07-21T17:00:00')
+  }
+];
+
+// Données mockées pour les factures
+export const mockInvoices: Invoice[] = [
+  {
+    id: 'inv_1',
+    invoiceNumber: 'INV-2025-001',
+    orderId: '1',
+    customerId: '1',
+    issueDate: new Date('2025-08-16T14:15:00'),
+    dueDate: new Date('2025-09-15T23:59:59'),
+    items: [
+      { id: 'inv_item_1_1', description: 'Lavage & Pliage - 10kg', quantity: 10, unitPrice: 2.50, total: 25.00 },
+      { id: 'inv_item_1_2', description: 'Repassage - 5 pièces', quantity: 5, unitPrice: 3.00, total: 15.00 }
+    ],
+    subtotal: 40.00,
+    tax: 8.00,
+    discount: 0,
+    total: 48.00,
+    notes: 'Paiement par carte bancaire',
+    status: 'paid',
+    createdAt: new Date('2025-08-16T14:15:00'),
+    updatedAt: new Date('2025-08-16T14:15:00')
+  },
+  {
+    id: 'inv_2',
+    invoiceNumber: 'INV-2025-002',
+    orderId: '6',
+    customerId: '1',
+    issueDate: new Date('2025-08-10T18:15:00'),
+    dueDate: new Date('2025-09-09T23:59:59'),
+    items: [
+      { id: 'inv_item_2_1', description: 'Lavage Express - 6kg', quantity: 6, unitPrice: 3.50, total: 21.00 }
+    ],
+    subtotal: 21.00,
+    tax: 4.20,
+    discount: 0,
+    total: 25.20,
+    notes: 'Paiement en espèces',
+    status: 'paid',
+    createdAt: new Date('2025-08-10T18:15:00'),
+    updatedAt: new Date('2025-08-10T18:15:00')
+  },
+  {
+    id: 'inv_3',
+    invoiceNumber: 'INV-2025-003',
+    orderId: '7',
+    customerId: '3',
+    issueDate: new Date('2025-08-11T16:30:00'),
+    dueDate: new Date('2025-09-10T23:59:59'),
+    items: [
+      { id: 'inv_item_3_1', description: 'Nettoyage à sec - 9 articles', quantity: 9, unitPrice: 6.00, total: 54.00 }
+    ],
+    subtotal: 54.00,
+    tax: 10.80,
+    discount: 0,
+    total: 64.80,
+    notes: 'En attente de paiement par virement',
+    status: 'sent',
+    createdAt: new Date('2025-08-11T16:30:00'),
+    updatedAt: new Date('2025-08-11T16:30:00')
   }
 ];
 
@@ -333,5 +439,42 @@ export const getDashboardStats = () => {
     completedToday,
     dailyRevenue,
     lowInventoryItems
+  };
+};
+
+// Fonction utilitaire pour générer un numéro de facture
+export const generateInvoiceNumber = (): string => {
+  const year = new Date().getFullYear();
+  const timestamp = Date.now().toString().slice(-6);
+  return `INV-${year}-${timestamp}`;
+};
+
+// Fonction pour créer une facture à partir d'une commande
+export const createInvoiceFromOrder = (order: Order): Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'> => {
+  const items = order.items?.map(item => ({
+    id: `inv_${item.id}`,
+    description: item.productName,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    total: item.total
+  })) || [];
+  
+  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+  const tax = subtotal * 0.2; // 20% TVA
+  const total = subtotal + tax;
+  
+  return {
+    invoiceNumber: generateInvoiceNumber(),
+    orderId: order.id,
+    customerId: order.customerId,
+    issueDate: new Date(),
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
+    items,
+    subtotal,
+    tax,
+    discount: 0,
+    total,
+    notes: `Facture générée automatiquement pour la commande #${order.id}`,
+    status: order.paid ? 'paid' : 'draft'
   };
 };

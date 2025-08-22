@@ -14,7 +14,8 @@ import {
   mockOrders, 
   mockServices, 
   mockEmployees, 
-  mockInventoryItems
+  mockInventoryItems,
+  mockInvoices
 } from '../data/mockData';
 
 interface AppContextType {
@@ -40,6 +41,7 @@ interface AppContextType {
   // Inventaire
   addInventoryItem: (item: Omit<InventoryItem, 'id'>) => void;
   updateInventoryItem: (item: InventoryItem) => void;
+  deleteInventoryItem: (id: string) => void;
   
   // Factures
   addInvoice: (invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -143,7 +145,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loadFromLocalStorage<Employee[]>('employees', mockEmployees)
   );
   const [invoices, setInvoices] = useState<Invoice[]>(
-    loadFromLocalStorage<Invoice[]>('invoices', [])
+    loadFromLocalStorage<Invoice[]>('invoices', mockInvoices)
   );
   
   // Sauvegarder les données dans le localStorage lorsqu'elles changent
@@ -263,15 +265,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addInventoryItem = (item: Omit<InventoryItem, 'id'>) => {
     const newItem: InventoryItem = {
       ...item,
-      id: (inventoryItems.length + 1).toString()
+      id: `inv-${Date.now()}`,
     };
-    setInventoryItems([...inventoryItems, newItem]);
+    const newItems = [...inventoryItems, newItem];
+    setInventoryItems(newItems);
+    saveToLocalStorage('inventoryItems', newItems);
   };
 
-  const updateInventoryItem = (updatedItem: InventoryItem) => {
-    setInventoryItems(inventoryItems.map(item => 
-      item.id === updatedItem.id ? updatedItem : item
-    ));
+  const updateInventoryItem = (item: InventoryItem) => {
+    const newItems = inventoryItems.map(i => i.id === item.id ? item : i);
+    setInventoryItems(newItems);
+    saveToLocalStorage('inventoryItems', newItems);
+  };
+
+  const deleteInventoryItem = (id: string) => {
+    const newItems = inventoryItems.filter(item => item.id !== id);
+    setInventoryItems(newItems);
+    saveToLocalStorage('inventoryItems', newItems);
   };
 
   const addInvoice = (invoiceData: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -283,55 +293,63 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       updatedAt: new Date(),
     };
     
-    // Mettre à jour le statut de paiement de la commande associée si la facture est payée
-    const orderToUpdate = orders.find(order => order.id === invoiceData.orderId);
-    if (orderToUpdate && newInvoice.status === 'paid') {
-      // Utiliser la méthode de paiement de la commande ou 'cash' par défaut
-      const paymentMethod = orderToUpdate.paymentMethod || 'cash';
-      
-      const updatedOrder = {
-        ...orderToUpdate,
-        paid: true,
-        paymentMethod: paymentMethod,
-        updatedAt: new Date()
-      };
-      
-      // Mettre à jour la commande dans la liste des commandes
-      const updatedOrders = orders.map(order => 
-        order.id === updatedOrder.id ? updatedOrder : order
-      );
-      
-      // Mettre à jour les commandes dans le state
-      setOrders(updatedOrders);
-      
-      // Sauvegarder dans le localStorage
-      saveToLocalStorage('orders', updatedOrders);
+    // Synchroniser avec la commande associée
+    if (invoiceData.orderId) {
+      const orderToUpdate = orders.find(order => order.id === invoiceData.orderId);
+      if (orderToUpdate) {
+        const shouldMarkAsPaid = newInvoice.status === 'paid';
+        const paymentMethod = orderToUpdate.paymentMethod || 'cash';
+        
+        const updatedOrder = {
+          ...orderToUpdate,
+          paid: shouldMarkAsPaid,
+          paymentMethod: paymentMethod,
+          updatedAt: new Date()
+        };
+        
+        // Mettre à jour les commandes de manière synchrone
+        const updatedOrders = orders.map(order => 
+          order.id === updatedOrder.id ? updatedOrder : order
+        );
+        
+        setOrders(updatedOrders);
+        saveToLocalStorage('orders', updatedOrders);
+      }
     }
     
     // Ajouter la facture
-    setInvoices([...invoices, newInvoice]);
-    saveToLocalStorage('invoices', [...invoices, newInvoice]);
+    const updatedInvoices = [...invoices, newInvoice];
+    setInvoices(updatedInvoices);
+    saveToLocalStorage('invoices', updatedInvoices);
     
     return newInvoice;
   };
 
   const updateInvoice = (invoice: Invoice) => {
+    const updatedInvoice = { ...invoice, updatedAt: new Date() };
     const updatedInvoices = invoices.map((inv) => 
-      inv.id === invoice.id ? { ...invoice, updatedAt: new Date() } : inv
+      inv.id === invoice.id ? updatedInvoice : inv
     );
     
-    // Mettre à jour le statut de paiement de la commande associée
-    const updatedInvoice = updatedInvoices.find(inv => inv.id === invoice.id);
-    if (updatedInvoice) {
+    // Synchroniser avec la commande associée
+    if (updatedInvoice.orderId) {
       const orderToUpdate = orders.find(order => order.id === updatedInvoice.orderId);
       if (orderToUpdate) {
-        const newPaidStatus = updatedInvoice.status === 'paid';
-        if (orderToUpdate.paid !== newPaidStatus) {
-          updateOrder({
+        const shouldMarkAsPaid = updatedInvoice.status === 'paid';
+        
+        if (orderToUpdate.paid !== shouldMarkAsPaid) {
+          const updatedOrder = {
             ...orderToUpdate,
-            paid: newPaidStatus,
+            paid: shouldMarkAsPaid,
             updatedAt: new Date()
-          });
+          };
+          
+          const updatedOrders = orders.map(order => 
+            order.id === updatedOrder.id ? updatedOrder : order
+          );
+          
+          setOrders(updatedOrders);
+          saveToLocalStorage('orders', updatedOrders);
         }
       }
     }
@@ -343,25 +361,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const deleteInvoice = (id: string) => {
     const invoiceToDelete = invoices.find(inv => inv.id === id);
     
-    // Mettre à jour le statut de paiement de la commande associée
-    if (invoiceToDelete) {
+    // Synchroniser avec la commande associée
+    if (invoiceToDelete && invoiceToDelete.orderId) {
       const orderToUpdate = orders.find(order => order.id === invoiceToDelete.orderId);
       if (orderToUpdate) {
-        // Créer une copie mise à jour de la commande
-        const updatedOrder = {
-          ...orderToUpdate,
-          paid: false,
-          updatedAt: new Date()
-        };
-        
-        // Mettre à jour la commande dans la liste des commandes
-        const updatedOrders = orders.map(order => 
-          order.id === updatedOrder.id ? updatedOrder : order
+        // Vérifier s'il y a d'autres factures payées pour cette commande
+        const otherPaidInvoices = invoices.filter(inv => 
+          inv.id !== id && 
+          inv.orderId === invoiceToDelete.orderId && 
+          inv.status === 'paid'
         );
         
-        // Mettre à jour l'état et le stockage local
-        setOrders(updatedOrders);
-        saveToLocalStorage('orders', updatedOrders);
+        // Ne marquer comme non payé que s'il n'y a pas d'autres factures payées
+        const shouldMarkAsUnpaid = otherPaidInvoices.length === 0;
+        
+        if (shouldMarkAsUnpaid && orderToUpdate.paid) {
+          const updatedOrder = {
+            ...orderToUpdate,
+            paid: false,
+            updatedAt: new Date()
+          };
+          
+          const updatedOrders = orders.map(order => 
+            order.id === updatedOrder.id ? updatedOrder : order
+          );
+          
+          setOrders(updatedOrders);
+          saveToLocalStorage('orders', updatedOrders);
+        }
       }
     }
     
@@ -370,7 +397,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setInvoices(updatedInvoices);
     saveToLocalStorage('invoices', updatedInvoices);
     
-    return true; // Indiquer que la suppression a réussi
+    return true;
   };
 
   const handleGeneratePdf = async (invoice: Invoice) => {
@@ -437,9 +464,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setOrders(updatedOrders);
     saveToLocalStorage('orders', updatedOrders);
     
-    // Vider aussi les factures
-    setInvoices([]);
-    saveToLocalStorage('invoices', []);
+    // Marquer toutes les factures comme brouillon au lieu de les supprimer
+    const updatedInvoices = invoices.map(invoice => ({
+      ...invoice,
+      status: 'draft' as const,
+      updatedAt: new Date()
+    }));
+    setInvoices(updatedInvoices);
+    saveToLocalStorage('invoices', updatedInvoices);
     
     return true;
   };
@@ -460,6 +492,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     deleteOrder,
     addInventoryItem,
     updateInventoryItem,
+    deleteInventoryItem,
     addInvoice,
     updateInvoice,
     deleteInvoice,

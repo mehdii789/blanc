@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatCurrency } from '../../utils/formatters';
-import { Invoice, InvoiceItem } from '../../types';
+import { Invoice } from '../../types';
+import { useEffect } from 'react';
 
 interface InvoiceFormData extends Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'> {
   // Ajoutez ici les propriétés spécifiques au formulaire si nécessaire
 }
-import { PlusIcon, TrashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -33,6 +33,7 @@ interface InvoiceFormProps {
 
 export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) => {
   const { customers, orders } = useApp();
+  
   const [formData, setFormData] = useState<InvoiceFormData>(() => {
     const defaultItems = [{ id: `item_${Date.now()}`, description: '', quantity: 1, unitPrice: 0, total: 0 }];
     
@@ -68,72 +69,87 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
       status: 'draft' as const,
     };
   });
-
-  const calculateTotals = (items: any[]) => {
-    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    const tax = subtotal * 0.2; // 20% de TVA
-    const total = subtotal + tax - formData.discount;
-    
-    return { subtotal, tax, total };
-  };
-
-  const handleItemChange = (index: number, field: keyof InvoiceItem, value: string | number) => {
-    const newItems = [...formData.items];
-    const item = { ...newItems[index] };
-    
-    if (field === 'quantity' || field === 'unitPrice' || field === 'total') {
-      item[field] = Number(value);
-    } else if (field === 'description') {
-      item.description = String(value);
+  
+  // Update customer ID when order changes
+  useEffect(() => {
+    if (formData.orderId) {
+      const selectedOrder = orders.find(order => order.id === formData.orderId);
+      if (selectedOrder && selectedOrder.customerId !== formData.customerId) {
+        setFormData(prev => ({
+          ...prev,
+          customerId: selectedOrder.customerId
+        }));
+      }
     }
-    
-    // Recalculer le total de l'article si la quantité ou le prix unitaire change
-    if (field === 'quantity' || field === 'unitPrice') {
-      item.total = item.quantity * item.unitPrice;
+  }, [formData.orderId, formData.customerId, orders]);
+
+
+  const handleOrderSelect = (orderId: string) => {
+    if (!orderId) {
+      // Reset form if no order is selected
+      setFormData(prev => ({
+        ...prev,
+        orderId: '',
+        items: [{ id: `item_${Date.now()}`, description: '', quantity: 1, unitPrice: 0, total: 0 }],
+        subtotal: 0,
+        tax: 0,
+        total: 0
+      }));
+      return;
     }
-    
-    newItems[index] = item;
-    const { subtotal, tax, total } = calculateTotals(newItems);
-    
-    setFormData({
-      ...formData,
-      items: newItems,
-      subtotal,
-      tax,
-      total
-    });
+
+    const selectedOrder = orders.find(order => order.id === orderId);
+    if (selectedOrder) {
+      let invoiceItems: any[] = [];
+      
+      // Vérifier que la commande a bien des items ou services
+      if (!selectedOrder.items?.length && !selectedOrder.services?.length) {
+        alert('Cette commande ne contient aucun article ou service.');
+        return;
+      }
+      
+      // Utiliser les items de la commande s'ils existent
+      if (selectedOrder.items && selectedOrder.items.length > 0) {
+        invoiceItems = selectedOrder.items.map((item, index) => ({
+          id: `item_${Date.now()}_${index}`,
+          description: item.productName || 'Article sans nom',
+          quantity: item.quantity || 1,
+          unitPrice: item.unitPrice || 0,
+          total: (item.quantity || 1) * (item.unitPrice || 0)
+        }));
+      } 
+      // Sinon utiliser les services
+      else if (selectedOrder.services && selectedOrder.services.length > 0) {
+        invoiceItems = selectedOrder.services.map((service, index) => ({
+          id: `item_${Date.now()}_${index}`,
+          description: service.name || 'Service sans nom',
+          quantity: service.quantity || 1,
+          unitPrice: service.price || 0,
+          total: (service.quantity || 1) * (service.price || 0)
+        }));
+      }
+
+      const subtotal = invoiceItems.reduce((sum, item) => sum + (item.total || 0), 0);
+      const tax = subtotal * 0.2; // 20% TVA
+      const total = subtotal + tax;
+
+      setFormData(prev => ({
+        ...prev,
+        orderId,
+        items: invoiceItems,
+        customerId: selectedOrder.customerId,
+        subtotal,
+        tax,
+        total,
+        discount: 0,
+        issueDate: new Date(),
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      }));
+    }
   };
 
-  const addItem = () => {
-    setFormData(prev => ({
-      ...prev,
-      items: [
-        ...prev.items, 
-        { 
-          id: `item_${Date.now()}`,
-          description: '', 
-          quantity: 1, 
-          unitPrice: 0, 
-          total: 0 
-        }
-      ],
-    }));
-  };
 
-  const removeItem = (index: number) => {
-    if (formData.items.length <= 1) return;
-    
-    const newItems = formData.items.filter((_, i) => i !== index);
-    const { subtotal, tax, total } = calculateTotals(newItems);
-    
-    setFormData(prev => ({
-      ...prev,
-      items: newItems,
-      subtotal,
-      tax,
-      total,
-    }));
-  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,22 +207,26 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
                 </div>
                 <div>
                   <label htmlFor="orderId" className="block text-sm font-medium text-gray-700">
-                    Commande associée
+                    Commande associée *
                   </label>
                   <select
                     id="orderId"
                     value={formData.orderId}
-                    onChange={(e) => setFormData({...formData, orderId: e.target.value})}
+                    onChange={(e) => handleOrderSelect(e.target.value)}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                    required
                   >
-                    <option value="">Aucune commande</option>
+                    <option value="">Sélectionner une commande</option>
                     {orders
                       .filter(order => !formData.customerId || order.customerId === formData.customerId)
-                      .map((order) => (
-                        <option key={order.id} value={order.id}>
-                          Commande #{order.id.slice(0, 8)}
-                        </option>
-                      ))}
+                      .map((order) => {
+                        const customer = customers.find(c => c.id === order.customerId);
+                        return (
+                          <option key={order.id} value={order.id}>
+                            Commande #{order.id} - {customer?.name} - {formatCurrency(order.totalAmount)}
+                          </option>
+                        );
+                      })}
                   </select>
                 </div>
               </div>
@@ -286,17 +306,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
           </div>
         </div>
 
+        {formData.orderId && formData.items.length > 0 && (
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-medium text-gray-900">Articles</h3>
-            <button
-              type="button"
-              onClick={addItem}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <PlusIcon className="h-4 w-4 mr-1" />
-              Ajouter un article
-            </button>
+            <h3 className="text-lg font-medium text-gray-900">Articles de la commande</h3>
           </div>
           
           <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -316,9 +329,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
                     <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </th>
-                    <th scope="col" className="relative px-3 py-3">
-                      <span className="sr-only">Actions</span>
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -326,62 +336,25 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
                     <React.Fragment key={index}>
                       {/* Version mobile */}
                       <tr className="sm:hidden border-b border-gray-200">
-                        <td colSpan={5} className="px-3 py-4">
+                        <td colSpan={4} className="px-3 py-4">
                           <div className="space-y-3">
                             <div>
                               <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
-                              <input
-                                type="text"
-                                value={item.description}
-                                onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                                className="block w-full border border-gray-300 rounded-md p-2 text-sm"
-                                placeholder="Description de l'article"
-                                required
-                              />
+                              <div className="text-sm font-medium text-gray-900">{item.description}</div>
                             </div>
                             <div className="grid grid-cols-3 gap-3">
                               <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Qté</label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={item.quantity}
-                                  onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                  className="block w-full border border-gray-300 rounded-md p-2 text-sm text-right"
-                                  required
-                                />
+                                <span className="text-xs font-medium text-gray-500">Quantité</span>
+                                <div className="text-sm font-medium">{item.quantity}</div>
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Prix U.</label>
-                                <div className="relative">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.unitPrice}
-                                    onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
-                                    className="block w-full border border-gray-300 rounded-md pl-2 pr-6 py-2 text-right text-sm"
-                                    required
-                                  />
-                                  <span className="absolute right-2 top-2 text-gray-500 text-xs">€</span>
-                                </div>
+                                <span className="text-xs font-medium text-gray-500">Prix unitaire</span>
+                                <div className="text-sm font-medium">{formatCurrency(item.unitPrice)}</div>
                               </div>
-                              <div className="flex flex-col">
+                              <div>
                                 <span className="text-xs font-medium text-gray-500">Total</span>
-                                <span className="text-sm font-medium mt-1">
-                                  {formatCurrency(item.quantity * item.unitPrice)}
-                                </span>
+                                <div className="text-sm font-medium">{formatCurrency(item.total)}</div>
                               </div>
-                            </div>
-                            <div className="flex justify-end">
-                              <button
-                                type="button"
-                                onClick={() => removeItem(index)}
-                                className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center"
-                              >
-                                <TrashIcon className="h-4 w-4 mr-1" />
-                                Supprimer
-                              </button>
                             </div>
                           </div>
                         </td>
@@ -389,52 +362,17 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
                       
                       {/* Version desktop */}
                       <tr className="hidden sm:table-row">
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <input
-                            type="text"
-                            value={item.description}
-                            onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                            className="block w-full border-0 p-0 focus:ring-0 text-sm"
-                            placeholder="Description de l'article"
-                            required
-                          />
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {item.description}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                            className="block w-16 text-right border-0 p-0 focus:ring-0 text-sm"
-                            required
-                          />
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                          {item.quantity}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <div className="flex items-center justify-end">
-                            <span className="text-gray-500 mr-1 text-sm">€</span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.unitPrice}
-                              onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
-                              className="block w-20 text-right border-0 p-0 focus:ring-0 text-sm"
-                              required
-                            />
-                          </div>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                          {formatCurrency(item.unitPrice)}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-right text-sm text-gray-700 font-medium">
-                          {formatCurrency(item.quantity * item.unitPrice)}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            type="button"
-                            onClick={() => removeItem(index)}
-                            className="text-red-600 hover:text-red-900"
-                            aria-label="Supprimer l'article"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                          {formatCurrency(item.total)}
                         </td>
                       </tr>
                     </React.Fragment>
@@ -444,6 +382,13 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
             </div>
           </div>
         </div>
+        )}
+        
+        {!formData.orderId && (
+          <div className="mb-8 text-center py-8 bg-gray-50 rounded-lg">
+            <p className="text-gray-500">Sélectionnez une commande pour voir les articles</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">

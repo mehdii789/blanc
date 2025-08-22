@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { InvoicesList } from '../components/invoices/InvoicesList';
 import { InvoiceForm } from '../components/invoices/InvoiceForm';
@@ -9,10 +9,7 @@ const InvoicesPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState<Invoice | null>(null);
 
-  // Sauvegarder les factures dans le stockage local à chaque modification
-  useEffect(() => {
-    localStorage.setItem('invoices', JSON.stringify(invoices));
-  }, [invoices]);
+  // Le stockage localStorage est maintenant géré dans AppContext
 
   const handleSave = (formData: any) => {
     if (currentInvoice) {
@@ -40,7 +37,13 @@ const InvoicesPage: React.FC = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
-      deleteInvoice(id);
+      try {
+        deleteInvoice(id);
+        console.log('Facture supprimée avec succès:', id);
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        alert('Erreur lors de la suppression de la facture');
+      }
     }
   };
 
