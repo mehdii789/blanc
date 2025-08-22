@@ -1,19 +1,75 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Phone, Mail, User } from 'lucide-react';
+import { Phone, Mail, User, Edit, Trash2, Plus } from 'lucide-react';
+import { EmployeeForm } from '../components/employees/EmployeeForm';
+import { Employee } from '../types';
+
+const getRoleLabel = (role: string) => {
+  switch (role.toLowerCase()) {
+    case 'gerant':
+      return 'Gérant';
+    case 'operateur':
+      return 'Opérateur';
+    case 'comptoir':
+      return 'Comptoir';
+    case 'livreur':
+      return 'Livreur';
+    default:
+      return role;
+  }
+};
 
 export const EmployeesPage: React.FC = () => {
-  const { employees } = useApp();
+  const { employees, addEmployee, updateEmployee, deleteEmployee } = useApp();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   
+  const handleSaveEmployee = (employeeData: Omit<Employee, 'id'>) => {
+    console.log('Saving employee data:', employeeData);
+    if (currentEmployee) {
+      console.log('Updating existing employee:', currentEmployee.id);
+      updateEmployee({ ...currentEmployee, ...employeeData });
+    } else {
+      console.log('Adding new employee');
+      addEmployee(employeeData);
+    }
+    setIsFormOpen(false);
+    setCurrentEmployee(null);
+  };
+
+  const handleEdit = (employee: Employee) => {
+    console.log('Editing employee:', employee.id);
+    setCurrentEmployee(employee);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    console.log('Request to delete employee:', id);
+    setShowDeleteConfirm(id);
+  };
+
+  const confirmDelete = () => {
+    if (showDeleteConfirm) {
+      console.log('Confirming deletion of employee:', showDeleteConfirm);
+      deleteEmployee(showDeleteConfirm);
+      setShowDeleteConfirm(null);
+    } else {
+      console.log('No employee ID to delete');
+    }
+  };
+
   // Fonction pour obtenir la couleur du badge en fonction du rôle
   const getRoleBadgeColor = (role: string) => {
     switch (role.toLowerCase()) {
-      case 'admin':
+      case 'gerant':
         return 'bg-purple-100 text-purple-800';
-      case 'manager':
+      case 'operateur':
         return 'bg-blue-100 text-blue-800';
-      case 'technicien':
+      case 'comptoir':
         return 'bg-green-100 text-green-800';
+      case 'livreur':
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -23,10 +79,55 @@ export const EmployeesPage: React.FC = () => {
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-800">Gestion des employés</h2>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base">
-          + Ajouter un employé
+        <button 
+          onClick={() => {
+            setCurrentEmployee(null);
+            setIsFormOpen(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base"
+        >
+          <Plus size={16} />
+          <span>Ajouter un employé</span>
         </button>
       </div>
+
+      {/* Formulaire d'ajout/modification */}
+      {isFormOpen && (
+        <EmployeeForm
+          employee={currentEmployee || undefined}
+          onSave={handleSaveEmployee}
+          onClose={() => {
+            setIsFormOpen(false);
+            setCurrentEmployee(null);
+          }}
+        />
+      )}
+
+      {/* Confirmation de suppression */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirmer la suppression</h3>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer cet employé ? Cette action est irréversible.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Version mobile */}
       <div className="md:hidden space-y-3">
@@ -41,17 +142,33 @@ export const EmployeesPage: React.FC = () => {
                   </h3>
                   <div className="mt-1">
                     <span className={`px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(employee.role)}`}>
-                      {employee.role.charAt(0).toUpperCase() + employee.role.slice(1)}
+                      {getRoleLabel(employee.role)}
                     </span>
                   </div>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                  </svg>
-                </button>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(employee);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50"
+                    title="Modifier"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(employee.id);
+                    }}
+                    className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50"
+                    title="Supprimer"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
-              
               <div className="space-y-2 mt-3 pt-3 border-t border-gray-100">
                 <div className="flex items-center text-sm text-gray-600">
                   <Mail size={14} className="mr-2 text-gray-400 flex-shrink-0" />
@@ -61,15 +178,6 @@ export const EmployeesPage: React.FC = () => {
                   <Phone size={14} className="mr-2 text-gray-400 flex-shrink-0" />
                   <span>{employee.phone || 'Non renseigné'}</span>
                 </div>
-              </div>
-              
-              <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
-                <button className="text-sm text-blue-600 hover:text-blue-800 px-3 py-1">
-                  Modifier
-                </button>
-                <button className="text-sm text-red-600 hover:text-red-800 px-3 py-1">
-                  Supprimer
-                </button>
               </div>
             </div>
           ))
@@ -123,12 +231,30 @@ export const EmployeesPage: React.FC = () => {
                     <div className="text-sm text-gray-500">{employee.phone || 'Non renseigné'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-4">
-                      Modifier
-                    </button>
-                    <button className="text-red-600 hover:text-red-900">
-                      Supprimer
-                    </button>
+                    <div className="flex justify-end space-x-4">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(employee);
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Modifier"
+                      >
+                        <Edit size={16} className="inline mr-1" />
+                        <span>Modifier</span>
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(employee.id);
+                        }}
+                        className="text-red-600 hover:text-red-900"
+                        title="Supprimer"
+                      >
+                        <Trash2 size={16} className="inline mr-1" />
+                        <span>Supprimer</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

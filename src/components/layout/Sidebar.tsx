@@ -10,39 +10,40 @@ import {
   UserPlus,
   FileText
 } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { Link, useLocation } from 'react-router-dom';
+
 
 interface SidebarItemProps {
   icon: React.ReactNode;
   label: string;
   view: string;
   active: boolean;
-  onClick: () => void;
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ 
   icon, 
   label, 
-  active, 
-  onClick 
+  view,
+  active
 }) => {
   return (
-    <div 
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${
+    <Link 
+      to={`/${view === 'dashboard' ? '' : view}`}
+      className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors ${
         active 
-          ? 'bg-blue-100 text-blue-700' 
-          : 'text-gray-700 hover:bg-gray-100'
+          ? 'bg-blue-50 text-blue-700' 
+          : 'text-gray-600 hover:bg-gray-100'
       }`}
-      onClick={onClick}
     >
-      <div className="text-current">{icon}</div>
+      <span className={`${active ? 'text-blue-600' : 'text-gray-500'}`}>
+        {icon}
+      </span>
       <span className="font-medium">{label}</span>
-    </div>
+    </Link>
   );
 };
 
 export const Sidebar: React.FC = () => {
-  const { activeView, setActiveView } = useApp();
 
   const menuItems = [
     { icon: <Home size={20} />, label: 'Tableau de bord', view: 'dashboard' },
@@ -56,26 +57,33 @@ export const Sidebar: React.FC = () => {
     { icon: <Settings size={20} />, label: 'Paramètres', view: 'settings' },
   ];
 
+  const location = useLocation();
+  const currentPath = location.pathname.split('/')[1] || 'dashboard';
+
   return (
     <div className="w-64 h-full bg-white border-r border-gray-200 p-4 flex flex-col">
-      <div className="mb-8 flex items-center gap-3 px-4">
+      <Link to="/" className="mb-8 flex items-center gap-3 px-4">
         <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
           <ClipboardList size={20} className="text-white" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">BlanchPro</h1>
-      </div>
+      </Link>
       
       <div className="flex flex-col gap-1">
-        {menuItems.map((item) => (
-          <SidebarItem
-            key={item.view}
-            icon={item.icon}
-            label={item.label}
-            view={item.view}
-            active={activeView === item.view}
-            onClick={() => setActiveView(item.view)}
-          />
-        ))}
+        {menuItems.map((item) => {
+          const isActive = currentPath === item.view || 
+                         (currentPath === '' && item.view === 'dashboard');
+          
+          return (
+            <SidebarItem
+              key={item.view}
+              icon={item.icon}
+              label={item.label}
+              view={item.view}
+              active={isActive}
+            />
+          );
+        })}
       </div>
       
       <div className="mt-auto pt-4 border-t border-gray-200">

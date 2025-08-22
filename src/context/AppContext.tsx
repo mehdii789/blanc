@@ -28,11 +28,14 @@ interface AppContextType {
   // Clients
   addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => void;
   updateCustomer: (customer: Customer) => void;
+  deleteCustomer: (id: string) => void;
   
   // Commandes
   addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateOrder: (order: Order) => void;
+  deleteOrder: (id: string) => void;
+  resetAllOrdersPaymentStatus: () => boolean;
   
   // Inventaire
   addInventoryItem: (item: Omit<InventoryItem, 'id'>) => void;
@@ -45,9 +48,20 @@ interface AppContextType {
   setInvoices: (invoices: Invoice[]) => void;
   generatePdf: (invoice: Invoice) => Promise<void>;
   
+  // Employés
+  addEmployee: (employee: Omit<Employee, 'id'>) => void;
+  updateEmployee: (employee: Employee) => void;
+  deleteEmployee: (id: string) => void;
+  
   // Navigation
   activeView: string;
   setActiveView: (view: string) => void;
+  
+  // Filtre de date pour le tableau de bord
+  selectedDate: Date;
+  setSelectedDate: (date: Date) => void;
+  dateRange: { start: Date; end: Date };
+  setDateRange: (range: { start: Date; end: Date }) => void;
   
   // Sélections
   selectedCustomerId: string | null;
@@ -105,6 +119,15 @@ const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
   }
 };
 
+// Fonction pour sauvegarder les données dans le localStorage
+const saveToLocalStorage = (key: string, data: any) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error(`Erreur lors de la sauvegarde des ${key} dans le localStorage:`, error);
+  }
+};
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Charger les données depuis le localStorage ou utiliser les données mockées
   const [customers, setCustomers] = useState<Customer[]>(
@@ -116,7 +139,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [services] = useState<Service[]>(
     loadFromLocalStorage<Service[]>('services', mockServices)
   );
-  const [employees] = useState<Employee[]>(
+  const [employees, setEmployees] = useState<Employee[]>(
     loadFromLocalStorage<Employee[]>('employees', mockEmployees)
   );
   const [invoices, setInvoices] = useState<Invoice[]>(
@@ -135,11 +158,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     localStorage.setItem('invoices', JSON.stringify(invoices));
   }, [invoices]);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() => 
     loadFromLocalStorage<InventoryItem[]>('inventory', mockInventoryItems)
   );
   
+  // Sauvegarder les articles d'inventaire dans le localStorage lorsqu'ils changent
+  useEffect(() => {
+    localStorage.setItem('inventory', JSON.stringify(inventoryItems));
+  }, [inventoryItems]);
+  
+  useEffect(() => {
+    localStorage.setItem('employees', JSON.stringify(employees));
+  }, [employees]);
+  
   const [activeView, setActiveView] = useState<string>('dashboard');
+  
+  // État pour la gestion des dates dans le tableau de bord
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return { start, end };
+  });
+  
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
@@ -157,6 +199,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCustomers(customers.map(customer => 
       customer.id === updatedCustomer.id ? updatedCustomer : customer
     ));
+  };
+
+  const deleteCustomer = (id: string) => {
+    // Supprimer le client
+    setCustomers(customers.filter(customer => customer.id !== id));
+    
+    // Si le client supprimé est celui qui est actuellement sélectionné, on le déselectionne
+    if (selectedCustomerId === id) {
+      setSelectedCustomerId(null);
+    }
+    
+    // Mettre à jour les commandes associées à ce client (optionnel)
+    // Par exemple, on pourrait vouloir supprimer ou marquer comme "sans client" les commandes de ce client
   };
 
   const addOrder = (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -178,11 +233,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateOrder = (updatedOrder: Order) => {
-    setOrders(orders.map(order => 
-      order.id === updatedOrder.id 
-        ? { ...updatedOrder, updatedAt: new Date() } 
-        : order
-    ));
+    const currentDate = new Date();
+    const orderIndex = orders.findIndex(order => order.id === updatedOrder.id);
+    
+    if (orderIndex !== -1) {
+      const updatedOrders = [...orders];
+      updatedOrders[orderIndex] = {
+        ...updatedOrder,
+        updatedAt: currentDate
+      };
+      setOrders(updatedOrders);
+      saveToLocalStorage('orders', updatedOrders);
+    }
+  };
+
+  const deleteOrder = (id: string) => {
+    const updatedOrders = orders.filter(order => order.id !== id);
+    setOrders(updatedOrders);
+    saveToLocalStorage('orders', updatedOrders);
+    
+    // Si une commande sélectionnée est supprimée, on la déselectionne
+    if (selectedOrderId === id) {
+      setSelectedOrderId(null);
+    }
+    
+    return true; // Indiquer que la suppression a réussi
   };
 
   const addInventoryItem = (item: Omit<InventoryItem, 'id'>) => {
@@ -199,25 +274,103 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     ));
   };
 
-  const addInvoice = (invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addInvoice = (invoiceData: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>) => {
+    // Créer la facture avec le statut fourni
     const newInvoice: Invoice = {
-      ...invoice,
+      ...invoiceData,
       id: `inv_${Date.now()}`,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    
+    // Mettre à jour le statut de paiement de la commande associée si la facture est payée
+    const orderToUpdate = orders.find(order => order.id === invoiceData.orderId);
+    if (orderToUpdate && newInvoice.status === 'paid') {
+      // Utiliser la méthode de paiement de la commande ou 'cash' par défaut
+      const paymentMethod = orderToUpdate.paymentMethod || 'cash';
+      
+      const updatedOrder = {
+        ...orderToUpdate,
+        paid: true,
+        paymentMethod: paymentMethod,
+        updatedAt: new Date()
+      };
+      
+      // Mettre à jour la commande dans la liste des commandes
+      const updatedOrders = orders.map(order => 
+        order.id === updatedOrder.id ? updatedOrder : order
+      );
+      
+      // Mettre à jour les commandes dans le state
+      setOrders(updatedOrders);
+      
+      // Sauvegarder dans le localStorage
+      saveToLocalStorage('orders', updatedOrders);
+    }
+    
+    // Ajouter la facture
     setInvoices([...invoices, newInvoice]);
+    saveToLocalStorage('invoices', [...invoices, newInvoice]);
+    
     return newInvoice;
   };
 
   const updateInvoice = (invoice: Invoice) => {
-    setInvoices(invoices.map((inv) => 
+    const updatedInvoices = invoices.map((inv) => 
       inv.id === invoice.id ? { ...invoice, updatedAt: new Date() } : inv
-    ));
+    );
+    
+    // Mettre à jour le statut de paiement de la commande associée
+    const updatedInvoice = updatedInvoices.find(inv => inv.id === invoice.id);
+    if (updatedInvoice) {
+      const orderToUpdate = orders.find(order => order.id === updatedInvoice.orderId);
+      if (orderToUpdate) {
+        const newPaidStatus = updatedInvoice.status === 'paid';
+        if (orderToUpdate.paid !== newPaidStatus) {
+          updateOrder({
+            ...orderToUpdate,
+            paid: newPaidStatus,
+            updatedAt: new Date()
+          });
+        }
+      }
+    }
+    
+    setInvoices(updatedInvoices);
+    saveToLocalStorage('invoices', updatedInvoices);
   };
 
   const deleteInvoice = (id: string) => {
-    setInvoices(invoices.filter((inv) => inv.id !== id));
+    const invoiceToDelete = invoices.find(inv => inv.id === id);
+    
+    // Mettre à jour le statut de paiement de la commande associée
+    if (invoiceToDelete) {
+      const orderToUpdate = orders.find(order => order.id === invoiceToDelete.orderId);
+      if (orderToUpdate) {
+        // Créer une copie mise à jour de la commande
+        const updatedOrder = {
+          ...orderToUpdate,
+          paid: false,
+          updatedAt: new Date()
+        };
+        
+        // Mettre à jour la commande dans la liste des commandes
+        const updatedOrders = orders.map(order => 
+          order.id === updatedOrder.id ? updatedOrder : order
+        );
+        
+        // Mettre à jour l'état et le stockage local
+        setOrders(updatedOrders);
+        saveToLocalStorage('orders', updatedOrders);
+      }
+    }
+    
+    // Supprimer la facture
+    const updatedInvoices = invoices.filter((inv) => inv.id !== id);
+    setInvoices(updatedInvoices);
+    saveToLocalStorage('invoices', updatedInvoices);
+    
+    return true; // Indiquer que la suppression a réussi
   };
 
   const handleGeneratePdf = async (invoice: Invoice) => {
@@ -237,44 +390,104 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await generatePdf(invoice, company, customer);
   };
 
-  const value = {
+  const addEmployee = (employee: Omit<Employee, 'id'>) => {
+    console.log('Adding new employee:', employee);
+    const newEmployee: Employee = {
+      ...employee,
+      id: Date.now().toString(),
+    };
+    console.log('Created employee with ID:', newEmployee.id);
+    const updatedEmployees = [...employees, newEmployee];
+    console.log('Updated employees list:', updatedEmployees);
+    setEmployees(updatedEmployees);
+    saveToLocalStorage('employees', updatedEmployees);
+    console.log('Employee added and saved to localStorage');
+  };
+
+  const updateEmployee = (updatedEmployee: Employee) => {
+    console.log('Updating employee:', updatedEmployee.id, 'with data:', updatedEmployee);
+    const updatedEmployees = employees.map(emp => 
+      emp.id === updatedEmployee.id ? { ...updatedEmployee } : emp
+    );
+    console.log('Updated employees list:', updatedEmployees);
+    setEmployees(updatedEmployees);
+    saveToLocalStorage('employees', updatedEmployees);
+    console.log('Employee updated and saved to localStorage');
+  };
+
+  const deleteEmployee = (id: string) => {
+    console.log('Deleting employee with ID:', id);
+    const updatedEmployees = employees.filter(emp => {
+      console.log('Checking employee:', emp.id, 'against ID to delete:', id);
+      return emp.id !== id;
+    });
+    console.log('Employees after deletion:', updatedEmployees);
+    setEmployees(updatedEmployees);
+    saveToLocalStorage('employees', updatedEmployees);
+    console.log('Employee deleted and changes saved to localStorage');
+  };
+
+  // Fonction pour réinitialiser toutes les commandes comme non payées
+  const resetAllOrdersPaymentStatus = () => {
+    const updatedOrders = orders.map(order => ({
+      ...order,
+      paid: false,
+      updatedAt: new Date()
+    }));
+    setOrders(updatedOrders);
+    saveToLocalStorage('orders', updatedOrders);
+    
+    // Vider aussi les factures
+    setInvoices([]);
+    saveToLocalStorage('invoices', []);
+    
+    return true;
+  };
+
+  const value: AppContextType = {
     customers,
     orders,
     services,
     employees,
     inventoryItems,
     invoices,
-    
     addCustomer,
     updateCustomer,
-    
+    deleteCustomer,
     addOrder,
     updateOrderStatus,
     updateOrder,
-    
+    deleteOrder,
     addInventoryItem,
     updateInventoryItem,
-    
     addInvoice,
     updateInvoice,
     deleteInvoice,
-    generatePdf: handleGeneratePdf,
     setInvoices,
-    
+    generatePdf: handleGeneratePdf,
+    addEmployee,
+    updateEmployee,
+    deleteEmployee,
     activeView,
     setActiveView,
-    
+    selectedDate,
+    setSelectedDate,
+    dateRange,
+    setDateRange,
     selectedCustomerId,
     setSelectedCustomerId,
-    
     selectedOrderId,
     setSelectedOrderId,
-    
     selectedInvoiceId,
     setSelectedInvoiceId,
+    resetAllOrdersPaymentStatus,
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+    </AppContext.Provider>
+  );
 };
 
 export const useApp = (): AppContextType => {

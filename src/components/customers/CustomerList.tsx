@@ -4,7 +4,7 @@ import { CustomerForm } from './CustomerForm';
 import { Search, UserPlus, Edit, Trash, Mail, Phone, MapPin } from 'lucide-react';
 
 export const CustomerList: React.FC = () => {
-  const { customers, setSelectedCustomerId } = useApp();
+  const { customers, setSelectedCustomerId, deleteCustomer } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
@@ -82,9 +82,16 @@ export const CustomerList: React.FC = () => {
                             <Edit size={16} />
                           </button>
                           <button 
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
-                              // Delete functionality would go here
+                              if (window.confirm(`Êtes-vous sûr de vouloir supprimer le client "${customer.name}" ?`)) {
+                                try {
+                                  await deleteCustomer(customer.id);
+                                } catch (error) {
+                                  console.error('Erreur lors de la suppression du client:', error);
+                                  alert('Une erreur est survenue lors de la suppression du client.');
+                                }
+                              }
                             }}
                             className="text-red-600 hover:text-red-800 p-1"
                             title="Supprimer"
@@ -172,9 +179,16 @@ export const CustomerList: React.FC = () => {
                               <Edit size={16} />
                             </button>
                             <button 
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
-                                // Delete functionality would go here
+                                if (window.confirm(`Êtes-vous sûr de vouloir supprimer le client "${customer.name}" ?`)) {
+                                  try {
+                                    await deleteCustomer(customer.id);
+                                  } catch (error) {
+                                    console.error('Erreur lors de la suppression du client:', error);
+                                    alert('Une erreur est survenue lors de la suppression du client.');
+                                  }
+                                }
                               }}
                               className="text-red-600 hover:text-red-900"
                               title="Supprimer"

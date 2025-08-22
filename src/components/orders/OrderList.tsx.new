@@ -109,16 +109,14 @@ const OrderList = () => {
       {/* En-tête avec barre de recherche et bouton d'ajout */}
       <div className="p-4 sm:px-6 sm:py-4 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 text-center sm:text-left w-full sm:w-auto">Commandes</h2>
-          <div className="w-full sm:w-auto flex justify-center sm:block">
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
-            >
-              <Plus size={16} />
-              <span>Nouvelle commande</span>
-            </button>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Commandes</h2>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
+          >
+            <Plus size={16} />
+            <span>Nouvelle commande</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -158,9 +156,9 @@ const OrderList = () => {
 
       {filteredOrders.length > 0 ? (
         <>
-          {/* Version Mobile - Cartes améliorée */}
-          <div className="md:hidden p-3">
-            <div className="space-y-3">
+          {/* Version Mobile - Cartes */}
+          <div className="md:hidden p-4">
+            <div className="grid gap-4">
               {filteredOrders.map((order) => {
                 const customer = customers.find(c => c.id === order.customerId);
                 const customerName = customer?.name || 'Client inconnu';
@@ -169,39 +167,26 @@ const OrderList = () => {
                 return (
                   <div 
                     key={order.id} 
-                    className="bg-white rounded-lg shadow-sm p-4 cursor-pointer border border-gray-100 hover:border-blue-200 transition-colors"
+                    className="bg-white rounded-lg shadow-sm p-4 cursor-pointer"
                     onClick={() => handleViewOrder(order.id)}
                   >
-                    {/* En-tête avec numéro de commande et date */}
-                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
-                      <span className="text-base font-semibold text-gray-900">#{order.id.substring(0, 8)}</span>
-                      <span className="text-xs text-gray-500">{formatDate(order.createdAt)}</span>
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-lg font-medium text-gray-900">#{order.id.substring(0, 8)}</span>
+                      <span className="text-sm text-gray-500">{formatDate(order.createdAt)}</span>
                     </div>
-                    
-                    {/* Informations client */}
-                    <div className="mb-3">
-                      <div className="text-base font-medium text-gray-900 truncate">{customerName}</div>
-                      {customerPhone && (
-                        <div className="text-sm text-blue-600 mt-1">{customerPhone}</div>
-                      )}
+                    <div className="text-sm text-gray-900 mb-2">{customerName}</div>
+                    {customerPhone && (
+                      <div className="text-sm text-gray-500 mb-4">{customerPhone}</div>
+                    )}
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-sm font-medium text-gray-900">{formatCurrency(order.totalAmount)}</span>
+                      <span className="text-sm text-gray-500">{order.services?.length || 0} service{(order.services?.length || 0) > 1 ? 's' : ''}</span>
                     </div>
-                    
-                    {/* Montant et nombre de services */}
-                    <div className="flex justify-between items-center mb-3 text-sm">
-                      <span className="font-semibold text-gray-900">{formatCurrency(order.totalAmount)}</span>
-                      <span className="text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                        {order.services?.length || 0} service{(order.services?.length || 0) !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    
-                    {/* Statut et méthode de paiement */}
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                      <div className="flex-shrink-0">
-                        {getStatusBadge(order.status)}
-                      </div>
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex justify-between items-center">
+                      {getStatusBadge(order.status)}
+                      <div className="flex items-center gap-2">
                         {getPaymentMethodIcon(order.paymentMethod || 'cash')}
-                        <span className="text-xs font-medium text-gray-700">
+                        <span className="text-sm text-gray-900">
                           {getPaymentMethodLabel(order.paymentMethod || 'cash')}
                         </span>
                       </div>

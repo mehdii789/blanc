@@ -1,57 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ArrowLeft, Edit, Printer, CreditCard, MessageCircle, Clock, User } from 'lucide-react';
+import { ArrowLeft, Edit, Clock, User, Banknote, Building2, FileText, CreditCard } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { OrderStatus } from '../../types';
+import { OrderStatus, Order, Service, PaymentMethod, Invoice, InvoiceItem } from '../../types';
+import { useNavigate } from 'react-router-dom';
 
 interface OrderDetailsProps {
   orderId: string;
+  onBack: () => void;
 }
 
-export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId }) => {
+export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) => {
+  // Tous les Hooks sont maintenant en haut du composant
   const { 
     orders, 
     customers, 
-    setSelectedOrderId, 
     updateOrderStatus,
-    updateOrder 
+    addInvoice
   } = useApp();
+  const navigate = useNavigate();
   
-  const order = orders.find(o => o.id === orderId);
-  
-  if (!order) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Commande non trouvée</p>
-        <button
-          className="mt-4 px-4 py-2 text-blue-600 hover:text-blue-800"
-          onClick={() => setSelectedOrderId(null)}
-        >
-          Retour à la liste des commandes
-        </button>
-      </div>
-    );
-  }
-  
-  const customer = customers.find(c => c.id === order.customerId);
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [orderServices, setOrderServices] = useState<Service[]>([]);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [newStatus, setNewStatus] = useState<OrderStatus>(order.status);
+  const [newStatus, setNewStatus] = useState<OrderStatus>('en_attente');
+  const [showCreateInvoice, setShowCreateInvoice] = useState(false);
+  const [invoiceStatus, setInvoiceStatus] = useState<Invoice['status']>('draft');
   
+  // Fonctions de gestion d'état déplacées ici
   const handleStatusChange = (status: OrderStatus) => {
     setNewStatus(status);
   };
   
   const saveStatusChange = () => {
+    if (!orderId) return;
     updateOrderStatus(orderId, newStatus);
     setIsUpdatingStatus(false);
-  };
-  
-  const togglePaidStatus = () => {
-    updateOrder({
-      ...order,
-      paid: !order.paid
-    });
   };
   
   const getStatusColor = (status: OrderStatus) => {
@@ -78,15 +63,115 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId }) => {
     'livre',
     'annule'
   ];
+
+  // Fonction pour obtenir l'icône du mode de paiement
+  const getPaymentMethodIcon = (method: PaymentMethod) => {
+    switch (method) {
+      case 'cash': return <Banknote size={18} className="text-green-600" />;
+      case 'card': return <CreditCard size={18} className="text-blue-600" />;
+      case 'transfer': return <Building2 size={18} className="text-purple-600" />;
+      case 'check': return <FileText size={18} className="text-orange-600" />;
+      default: return <CreditCard size={18} className="text-gray-600" />;
+    }
+  };
+
+  // Fonction pour obtenir le label du mode de paiement
+  const getPaymentMethodLabel = (method: PaymentMethod): string => {
+    switch (method) {
+      case 'cash': return 'Espèces';
+      case 'card': return 'Carte bancaire';
+      case 'transfer': return 'Virement';
+      case 'check': return 'Chèque';
+      default: return 'Non défini';
+    }
+  };
   
-  const isCompleted = order.status === 'livre' || order.status === 'annule';
+  // Valeurs dérivées
+  const customer = order ? customers.find(c => c.id === order.customerId) : null;
+  const isCompleted = order ? (order.status === 'livre' || order.status === 'annule') : false;
+  
+  // Mettre à jour la commande lorsque l'ID change ou que les commandes sont mises à jour
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadOrder = async () => {
+      if (!orderId) return;
+      
+      setIsLoading(true);
+      try {
+        // Vérifier si la commande existe déjà dans la liste
+        console.log('Recherche de la commande avec ID:', orderId);
+        console.log('Liste complète des commandes:', orders);
+        
+        const existingOrder = orders.find(o => o.id === orderId);
+        console.log('Commande trouvée:', existingOrder);
+        
+        if (existingOrder && isMounted) {
+          console.log('Définition de la commande et de ses services');
+          setOrder(existingOrder);
+          setNewStatus(existingOrder.status);
+          // Mettre à jour les services de la commande
+          const services = Array.isArray(existingOrder.services) ? existingOrder.services : [];
+          console.log('Services de la commande:', services);
+          setOrderServices(services);
+        } else if (isMounted) {
+          console.error(`Commande avec l'ID ${orderId} non trouvée dans la liste des commandes`);
+          console.warn(`Commande avec l'ID ${orderId} non trouvée dans la liste des commandes`);
+          // Optionnel : rediriger vers la liste des commandes avec un message d'erreur
+          // onBack();
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement de la commande:', error);
+        if (isMounted) {
+          // En cas d'erreur, on peut rediriger vers la liste avec un message d'erreur
+          // onBack();
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadOrder();
+    
+    // Nettoyer l'état lors du démontage du composant
+    return () => {
+      isMounted = false;
+    };
+  }, [orderId, orders]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="text-center p-8">
+        <h3 className="text-lg font-medium text-gray-900">Commande non trouvée</h3>
+        <p className="mt-2 text-gray-500">La commande demandée n'existe pas ou a été supprimée.</p>
+        <button
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          onClick={onBack}
+        >
+          Retour à la liste des commandes
+        </button>
+      </div>
+    );
+  }
+  
+  // Les fonctions et constantes ont été déplacées en haut du composant pour respecter les règles des Hooks
   
   return (
     <div className="space-y-6">
       <div className="flex items-center">
         <button
           className="mr-4 p-2 rounded-full hover:bg-gray-100"
-          onClick={() => setSelectedOrderId(null)}
+          onClick={onBack}
         >
           <ArrowLeft size={20} className="text-gray-500" />
         </button>
@@ -107,27 +192,11 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId }) => {
           
           <div className="flex flex-wrap gap-3">
             <button
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowCreateInvoice(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
-              <Printer size={16} />
-              <span>Imprimer le reçu</span>
-            </button>
-            <button
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
-              <MessageCircle size={16} />
-              <span>Envoyer une notification</span>
-            </button>
-            <button
-              onClick={togglePaidStatus}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                order.paid 
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              <CreditCard size={16} />
-              <span>{order.paid ? 'Marqué comme payé' : 'Marquer comme payé'}</span>
+              <FileText size={16} />
+              <span>Créer une facture</span>
             </button>
           </div>
         </div>
@@ -162,13 +231,18 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId }) => {
           {/* Carte Statut de paiement */}
           <div className="flex items-start gap-3 p-4 bg-white border border-gray-100 rounded-lg shadow-sm w-full">
             <div className="p-2 bg-green-50 rounded-lg text-green-600 flex-shrink-0">
-              <CreditCard size={18} className="w-4 h-4" />
+              {getPaymentMethodIcon(order.paymentMethod || 'cash')}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Paiement</p>
-              <p className={`text-sm font-medium ${order.paid ? 'text-green-600' : 'text-red-600'}`}>
-                {order.paid ? 'Payé' : 'Non payé'}
+              <p className="text-sm font-medium text-gray-900 mb-1">
+                {getPaymentMethodLabel(order.paymentMethod || 'cash')}
               </p>
+              {order.paid && (
+                <p className="text-xs font-medium text-green-600">
+                  Payé
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -186,12 +260,13 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId }) => {
                   Modifier le statut
                 </button>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex items-center justify-between mb-6">
                   <button
-                    onClick={() => setIsUpdatingStatus(false)}
-                    className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                    onClick={onBack}
+                    className="flex items-center text-gray-600 hover:text-gray-800"
                   >
-                    Annuler
+                    <ArrowLeft className="mr-2 h-5 w-5" />
+                    Retour à la liste
                   </button>
                   <button
                     onClick={saveStatusChange}
@@ -260,28 +335,48 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId }) => {
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Description
                       </th>
+                      <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
+                        Quantité
+                      </th>
                       <th scope="col" className="px-6 py-3.5 text-right text-sm font-semibold text-gray-900">
-                        Prix
+                        Prix unitaire
+                      </th>
+                      <th scope="col" className="px-6 py-3.5 text-right text-sm font-semibold text-gray-900">
+                        Total
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {order.services.map((service, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="py-3 pl-6 pr-3 text-sm font-medium text-gray-900 sm:whitespace-nowrap">
-                          <div className="font-medium">{service.name}</div>
-                          <div className="sm:hidden text-gray-500 text-xs mt-1">
+                    {orderServices.map((service, index) => {
+                      const quantity = (service as any).quantity || 1;
+                      const totalPrice = service.price * quantity;
+                      
+                      return (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="py-3 pl-6 pr-3 text-sm font-medium text-gray-900 sm:whitespace-nowrap">
+                            <div className="font-medium">{service.name}</div>
+                            <div className="sm:hidden text-gray-500 text-xs mt-1">
+                              {service.description}
+                              <div className="mt-1">
+                                <span className="font-medium">Quantité:</span> {quantity} × {formatCurrency(service.price)} = {formatCurrency(totalPrice)}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="hidden sm:table-cell px-3 py-4 text-sm text-gray-500">
                             {service.description}
-                          </div>
-                        </td>
-                        <td className="hidden sm:table-cell px-3 py-4 text-sm text-gray-500 whitespace-nowrap">
-                          {service.description}
-                        </td>
-                        <td className="py-3 px-6 text-right text-sm font-medium text-gray-900 whitespace-nowrap">
-                          {formatCurrency(service.price)}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="hidden sm:table-cell px-3 py-4 text-sm text-gray-900 text-right">
+                            {quantity}
+                          </td>
+                          <td className="hidden sm:table-cell px-6 py-4 text-sm text-gray-900 text-right">
+                            {formatCurrency(service.price)}
+                          </td>
+                          <td className="py-3 px-6 text-right text-sm font-medium text-gray-900 whitespace-nowrap">
+                            {formatCurrency(totalPrice)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                     <tr className="bg-gray-50 border-t-2 border-gray-200">
                       <td className="py-3 pl-6 text-sm font-medium text-gray-900 sm:hidden">
                         Total
@@ -307,6 +402,81 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId }) => {
           )}
         </div>
       </div>
+
+      {/* Modal de création de facture */}
+      {showCreateInvoice && order && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Créer une facture</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Statut de la facture
+              </label>
+              <select
+                value={invoiceStatus}
+                onChange={(e) => setInvoiceStatus(e.target.value as Invoice['status'])}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+              >
+                <option value="draft">Brouillon</option>
+                <option value="sent">Envoyée</option>
+                <option value="paid">Payée</option>
+                <option value="overdue">En retard</option>
+                <option value="cancelled">Annulée</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowCreateInvoice(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  // Calculer le total des articles de la commande avec les bonnes quantités
+                  const subtotal = orderServices.reduce((sum, service) => {
+                    const quantity = (service as any).quantity || 1;
+                    return sum + (service.price * quantity);
+                  }, 0);
+                  
+                  // Créer la facture
+                  addInvoice({
+                    orderId: order.id,
+                    customerId: order.customerId,
+                    issueDate: new Date(),
+                    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours plus tard
+                    items: orderServices.map(service => {
+                      const quantity = (service as any).quantity || 1;
+                      return {
+                        id: `item_${Date.now()}_${service.id}`,
+                        description: service.name,
+                        quantity: quantity,
+                        unitPrice: service.price,
+                        total: service.price * quantity
+                      } as InvoiceItem;
+                    }),
+                    subtotal,
+                    tax: subtotal * 0.2, // 20% de TVA
+                    discount: 0,
+                    total: subtotal * 1.2, // TTC
+                    notes: '',
+                    status: invoiceStatus,
+                    invoiceNumber: `INV-${Date.now().toString().slice(-6)}`
+                  });
+                  
+                  // Rediriger vers la page des factures
+                  navigate('/invoices');
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Créer la facture
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

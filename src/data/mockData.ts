@@ -10,7 +10,7 @@ export const mockCustomers: Customer[] = [
     city: 'Paris',
     postalCode: '75001',
     notes: 'Préfère les détergents écologiques',
-    createdAt: new Date('2023-01-15')
+    createdAt: new Date('2025-01-15')
   },
   {
     id: '2',
@@ -21,7 +21,7 @@ export const mockCustomers: Customer[] = [
     city: 'Lyon',
     postalCode: '69001',
     notes: 'Allergique à certains adoucissants',
-    createdAt: new Date('2023-02-20')
+    createdAt: new Date('2025-02-20')
   },
   {
     id: '3',
@@ -32,7 +32,7 @@ export const mockCustomers: Customer[] = [
     city: 'Marseille',
     postalCode: '13001',
     notes: 'Client VIP',
-    createdAt: new Date('2023-03-10')
+    createdAt: new Date('2025-03-10')
   },
   {
     id: '4',
@@ -43,7 +43,7 @@ export const mockCustomers: Customer[] = [
     city: 'Toulouse',
     postalCode: '31000',
     notes: '',
-    createdAt: new Date('2023-04-05')
+    createdAt: new Date('2025-04-05')
   },
   {
     id: '5',
@@ -54,7 +54,7 @@ export const mockCustomers: Customer[] = [
     city: 'Bordeaux',
     postalCode: '33000',
     notes: 'Paie généralement par carte',
-    createdAt: new Date('2023-05-12')
+    createdAt: new Date('2025-05-12')
   }
 ];
 
@@ -105,9 +105,9 @@ export const mockOrders: Order[] = [
     totalAmount: 35.50,
     paid: true,
     notes: '10 kilos de linge + 5 chemises à repasser',
-    createdAt: new Date('2023-07-01T10:30:00'),
-    updatedAt: new Date('2023-07-02T14:15:00'),
-    dueDate: new Date('2023-07-03T17:00:00')
+    createdAt: new Date('2025-08-15T10:30:00'),
+    updatedAt: new Date('2025-08-16T14:15:00'),
+    dueDate: new Date('2025-08-17T17:00:00')
   },
   {
     id: '2',
@@ -117,9 +117,9 @@ export const mockOrders: Order[] = [
     totalAmount: 42.00,
     paid: false,
     notes: '7 articles pour nettoyage à sec',
-    createdAt: new Date('2023-07-02T09:15:00'),
-    updatedAt: new Date('2023-07-02T11:30:00'),
-    dueDate: new Date('2023-07-04T17:00:00')
+    createdAt: new Date('2025-08-16T09:15:00'),
+    updatedAt: new Date('2025-08-16T11:30:00'),
+    dueDate: new Date('2025-08-18T17:00:00')
   },
   {
     id: '3',
@@ -129,9 +129,9 @@ export const mockOrders: Order[] = [
     totalAmount: 28.75,
     paid: true,
     notes: 'Réparti entre normal et express',
-    createdAt: new Date('2023-07-02T14:45:00'),
-    updatedAt: new Date('2023-07-02T15:30:00'),
-    dueDate: new Date('2023-07-03T14:00:00')
+    createdAt: new Date('2025-08-14T14:45:00'),
+    updatedAt: new Date('2025-08-15T15:30:00'),
+    dueDate: new Date('2025-08-16T14:00:00')
   },
   {
     id: '4',
@@ -141,9 +141,9 @@ export const mockOrders: Order[] = [
     totalAmount: 30.00,
     paid: false,
     notes: '2 couettes',
-    createdAt: new Date('2023-07-02T16:20:00'),
-    updatedAt: new Date('2023-07-02T16:20:00'),
-    dueDate: new Date('2023-07-05T17:00:00')
+    createdAt: new Date('2025-08-13T16:20:00'),
+    updatedAt: new Date('2025-08-13T16:20:00'),
+    dueDate: new Date('2025-08-19T17:00:00')
   },
   {
     id: '5',
@@ -153,9 +153,69 @@ export const mockOrders: Order[] = [
     totalAmount: 40.25,
     paid: true,
     notes: '15 kilos de linge + 2 chemises à repasser',
-    createdAt: new Date('2023-07-01T11:15:00'),
-    updatedAt: new Date('2023-07-02T13:45:00'),
-    dueDate: new Date('2023-07-03T12:00:00')
+    createdAt: new Date('2025-08-12T11:15:00'),
+    updatedAt: new Date('2025-08-14T13:45:00'),
+    dueDate: new Date('2025-08-15T12:00:00')
+  },
+  {
+    id: '6',
+    customerId: '1',
+    services: [mockServices[2]],
+    status: 'livre',
+    totalAmount: 21.00,
+    paid: true,
+    notes: '6 kilos express',
+    createdAt: new Date('2025-08-10T08:30:00'),
+    updatedAt: new Date('2025-08-10T18:15:00'),
+    dueDate: new Date('2025-08-10T18:00:00')
+  },
+  {
+    id: '7',
+    customerId: '3',
+    services: [mockServices[1], mockServices[4]],
+    status: 'pret',
+    totalAmount: 54.00,
+    paid: false,
+    notes: '9 articles nettoyage à sec + repassage',
+    createdAt: new Date('2025-08-08T14:20:00'),
+    updatedAt: new Date('2025-08-11T16:30:00'),
+    dueDate: new Date('2025-08-12T17:00:00')
+  },
+  {
+    id: '8',
+    customerId: '2',
+    services: [mockServices[0]],
+    status: 'livre',
+    totalAmount: 17.50,
+    paid: true,
+    notes: '7 kilos de linge standard',
+    createdAt: new Date('2025-07-28T10:45:00'),
+    updatedAt: new Date('2025-07-30T14:20:00'),
+    dueDate: new Date('2025-07-30T17:00:00')
+  },
+  {
+    id: '9',
+    customerId: '4',
+    services: [mockServices[3], mockServices[0]],
+    status: 'livre',
+    totalAmount: 32.50,
+    paid: true,
+    notes: '1 couette + 7 kilos linge',
+    createdAt: new Date('2025-07-25T16:10:00'),
+    updatedAt: new Date('2025-07-27T12:45:00'),
+    dueDate: new Date('2025-07-27T17:00:00')
+  },
+  {
+    id: '10',
+    customerId: '5',
+    services: [mockServices[4]],
+    status: 'livre',
+    totalAmount: 24.00,
+    paid: true,
+    notes: '8 chemises à repasser',
+    createdAt: new Date('2025-07-20T09:30:00'),
+    updatedAt: new Date('2025-07-21T15:15:00'),
+    dueDate: new Date('2025-07-21T17:00:00')
   }
 ];
 

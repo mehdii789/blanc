@@ -1,12 +1,19 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { Order } from '../../types';
 
-export const RecentOrders: React.FC = () => {
-  const { orders, customers, setActiveView, setSelectedOrderId } = useApp();
+interface RecentOrdersProps {
+  orders: Order[];
+}
+
+export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
+  const { customers, setSelectedOrderId } = useApp();
+  const navigate = useNavigate();
   
   const recentOrders = [...orders]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
   
   const getCustomerName = (customerId: string) => {
@@ -30,96 +37,97 @@ export const RecentOrders: React.FC = () => {
   
   const handleViewOrder = (orderId: string) => {
     setSelectedOrderId(orderId);
-    setActiveView('orders');
+    navigate(`/orders/${orderId}`);
   };
   
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
-        <h3 className="text-lg font-semibold text-gray-800 text-center sm:text-left">Commandes récentes</h3>
+    <div className="w-full">
+      <div className="flex justify-end mb-4 gap-3">
         <button 
-          className="text-sm text-blue-600 hover:text-blue-800 font-medium w-full sm:w-auto text-center"
-          onClick={() => setActiveView('orders')}
+          className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium w-full sm:w-auto text-center flex-shrink-0"
+          onClick={() => navigate('/orders')}
         >
           Voir tout
         </button>
       </div>
       
       {/* Version Desktop - Tableau */}
-      <div className="hidden sm:block overflow-x-auto">
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Commande</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">État</th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {recentOrders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {order.id}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {getCustomerName(order.customerId)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(order.createdAt)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatCurrency(order.totalAmount)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
-                    {order.status === 'en_attente' ? 'En attente' :
-                     order.status === 'en_traitement' ? 'En traitement' :
-                     order.status === 'lavage' ? 'Lavage' :
-                     order.status === 'sechage' ? 'Séchage' :
-                     order.status === 'pliage' ? 'Pliage' :
-                     order.status === 'pret' ? 'Prêt' :
-                     order.status === 'livre' ? 'Livré' :
-                     'Annulé'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewOrder(order.id);
-                    }}
-                    className="text-blue-600 hover:text-blue-900"
-                  >
-                    Voir
-                  </button>
-                </td>
+      <div className="hidden lg:block overflow-x-auto">
+        <div className="min-w-full">
+          <table className="w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">État</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {recentOrders.map((order) => (
+                <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    #{order.id}
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
+                    {getCustomerName(order.customerId)}
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(order.createdAt)}
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {formatCurrency(order.totalAmount)}
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
+                      {order.status === 'en_attente' ? 'En attente' :
+                       order.status === 'en_traitement' ? 'En traitement' :
+                       order.status === 'lavage' ? 'Lavage' :
+                       order.status === 'sechage' ? 'Séchage' :
+                       order.status === 'pliage' ? 'Pliage' :
+                       order.status === 'pret' ? 'Prêt' :
+                       order.status === 'livre' ? 'Livré' :
+                       'Annulé'}
+                    </span>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewOrder(order.id);
+                      }}
+                      className="text-blue-600 hover:text-blue-900 transition-colors"
+                    >
+                      Voir
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Version Mobile - Cartes */}
-      <div className="sm:hidden space-y-3">
+      {/* Version Mobile/Tablette - Cartes */}
+      <div className="lg:hidden space-y-3">
         {recentOrders.length > 0 ? (
           recentOrders.map((order) => (
             <div 
               key={order.id}
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="p-3 sm:p-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 cursor-pointer"
               onClick={() => handleViewOrder(order.id)}
             >
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Commande #{order.id}</p>
-                  <p className="text-sm text-gray-500 mt-1">{getCustomerName(order.customerId)}</p>
+              <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-900 truncate">Commande #{order.id}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">{getCustomerName(order.customerId)}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{formatCurrency(order.totalAmount)}</p>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-sm font-bold text-gray-900">{formatCurrency(order.totalAmount)}</p>
                   <div className="mt-1">
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
                       {order.status === 'en_attente' ? 'En attente' :
                        order.status === 'en_traitement' ? 'En traitement' :
                        order.status === 'lavage' ? 'Lavage' :
@@ -132,23 +140,31 @@ export const RecentOrders: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="mt-2 flex justify-between items-center text-sm text-gray-500">
-                <span>{formatDate(order.createdAt)}</span>
+              <div className="mt-3 flex justify-between items-center">
+                <span className="text-xs sm:text-sm text-gray-500">{formatDate(order.createdAt)}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleViewOrder(order.id);
                   }}
-                  className="text-blue-600 hover:text-blue-900 text-sm font-medium flex items-center"
+                  className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm font-medium flex items-center gap-1 transition-colors"
                 >
-                  Détails <span className="ml-1">→</span>
+                  Détails 
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
             </div>
           ))
         ) : (
-          <div className="p-4 text-center text-sm text-gray-500">
-            Aucune commande récente
+          <div className="p-8 text-center">
+            <div className="text-gray-400 mb-2">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p className="text-sm text-gray-500">Aucune commande pour cette période</p>
           </div>
         )}
       </div>

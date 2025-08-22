@@ -1,4 +1,5 @@
 import React from 'react';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { AppProvider } from './context/AppContext';
 import { Dashboard } from './pages/Dashboard';
@@ -12,47 +13,54 @@ import { SettingsPage } from './pages/SettingsPage';
 import InvoicesPage from './pages/InvoicesPage';
 import { useApp } from './context/AppContext';
 
+// Composant pour gérer la vue protégée avec le Layout
 const AppContent: React.FC = () => {
-  const { activeView } = useApp();
-  
-  const renderView = () => {
-    switch (activeView) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'customers':
-        return <CustomersPage />;
-      case 'orders':
-        return <OrdersPage />;
-      case 'inventory':
-        return <InventoryPage />;
-      case 'employees':
-        return <EmployeesPage />;
-      case 'payments':
-        return <PaymentsPage />;
-      case 'reports':
-        return <ReportsPage />;
-      case 'invoices':
-        return <InvoicesPage />;
-      case 'settings':
-        return <SettingsPage />;
-      default:
-        return <Dashboard />;
+  const { activeView, setActiveView } = useApp();
+  const location = useLocation();
+
+  // Mettre à jour l'activeView en fonction de l'URL
+  React.useEffect(() => {
+    const path = location.pathname.split('/')[1] || 'dashboard';
+    if (path !== activeView) {
+      setActiveView(path);
     }
-  };
-  
-  return (
+  }, [location, activeView, setActiveView]);
+
+  // Fonction pour rendre les routes avec un layout commun
+  const renderWithLayout = (element: React.ReactNode) => (
     <Layout>
-      {renderView()}
+      {element}
     </Layout>
+  );
+
+  return (
+    <Routes>
+      <Route path="/" element={renderWithLayout(<Navigate to="/dashboard" replace />)} />
+      <Route path="/dashboard" element={renderWithLayout(<Dashboard />)} />
+      <Route path="/customers" element={renderWithLayout(<CustomersPage />)} />
+      
+      {/* Route pour la liste des commandes */}
+      <Route path="/orders" element={renderWithLayout(<OrdersPage />)} />
+      {/* Route pour les détails d'une commande spécifique */}
+      <Route path="/orders/:orderId" element={renderWithLayout(<OrdersPage />)} />
+      
+      <Route path="/inventory" element={renderWithLayout(<InventoryPage />)} />
+      <Route path="/employees" element={renderWithLayout(<EmployeesPage />)} />
+      <Route path="/payments" element={renderWithLayout(<PaymentsPage />)} />
+      <Route path="/invoices" element={renderWithLayout(<InvoicesPage />)} />
+      <Route path="/reports" element={renderWithLayout(<ReportsPage />)} />
+      <Route path="/settings" element={renderWithLayout(<SettingsPage />)} />
+      <Route path="*" element={renderWithLayout(<Navigate to="/dashboard" replace />)} />
+    </Routes>
   );
 };
 
-function App() {
+const App: React.FC = () => {
   return (
     <AppProvider>
       <AppContent />
     </AppProvider>
   );
-}
+};
 
 export default App;

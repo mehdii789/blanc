@@ -5,7 +5,7 @@ import { InvoiceForm } from '../components/invoices/InvoiceForm';
 import { Invoice } from '../types';
 
 const InvoicesPage: React.FC = () => {
-  const { invoices, customers, setInvoices, generatePdf } = useApp();
+  const { invoices, customers, addInvoice, updateInvoice, deleteInvoice, generatePdf } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState<Invoice | null>(null);
 
@@ -17,22 +17,17 @@ const InvoicesPage: React.FC = () => {
   const handleSave = (formData: any) => {
     if (currentInvoice) {
       // Mise à jour d'une facture existante
-      setInvoices(
-        invoices.map((inv) =>
-          inv.id === currentInvoice.id
-            ? { ...formData, id: currentInvoice.id, updatedAt: new Date() }
-            : inv
-        )
-      );
+      const updatedInvoice: Invoice = {
+        ...formData,
+        id: currentInvoice.id,
+        createdAt: currentInvoice.createdAt,
+        updatedAt: new Date(),
+        status: formData.status || currentInvoice.status
+      };
+      updateInvoice(updatedInvoice);
     } else {
       // Création d'une nouvelle facture
-      const newInvoice: Invoice = {
-        ...formData,
-        id: `inv_${Date.now()}`,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setInvoices([...invoices, newInvoice]);
+      addInvoice(formData);
     }
     setShowForm(false);
     setCurrentInvoice(null);
@@ -45,7 +40,7 @@ const InvoicesPage: React.FC = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
-      setInvoices(invoices.filter((inv) => inv.id !== id));
+      deleteInvoice(id);
     }
   };
 

@@ -1,8 +1,24 @@
-import { StrictMode } from 'react';
+import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
+
+// Composant pour gérer la redirection et le chargement
+const AppWrapper = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Gestion des redirections pour les anciennes URLs basées sur le state
+  React.useEffect(() => {
+    // Si l'URL est la racine, rediriger vers le tableau de bord par défaut
+    if (location.pathname === '/') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [location, navigate]);
+
+  return <App />;
+};
 
 // Vérifie si l'élément root existe avant de tenter le rendu
 const rootElement = document.getElementById('root');
@@ -20,9 +36,11 @@ const root = createRoot(rootElement);
 try {
   root.render(
     <StrictMode>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <Router>
+        <Routes>
+          <Route path="/*" element={<AppWrapper />} />
+        </Routes>
+      </Router>
     </StrictMode>
   );
 } catch (error) {

@@ -6,7 +6,24 @@ import { Invoice, InvoiceItem } from '../../types';
 interface InvoiceFormData extends Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'> {
   // Ajoutez ici les propriétés spécifiques au formulaire si nécessaire
 }
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'draft':
+      return { bg: '#FEF9C3', text: '#92400E' }; // Jaune clair / marron
+    case 'sent':
+      return { bg: '#DBEAFE', text: '#1E40AF' }; // Bleu clair / bleu foncé
+    case 'paid':
+      return { bg: '#D1FAE5', text: '#065F46' }; // Vert clair / vert foncé
+    case 'overdue':
+      return { bg: '#FEE2E2', text: '#B91C1C' }; // Rouge clair / rouge foncé
+    case 'cancelled':
+      return { bg: '#F3F4F6', text: '#6B7280' }; // Gris clair / gris foncé
+    default:
+      return { bg: '#F3F4F6', text: '#111827' }; // Par défaut
+  }
+};
 
 interface InvoiceFormProps {
   invoice?: Invoice;
@@ -24,8 +41,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
         invoiceNumber: invoice.invoiceNumber,
         orderId: invoice.orderId,
         customerId: invoice.customerId,
-        issueDate: invoice.issueDate,
-        dueDate: invoice.dueDate,
+        issueDate: new Date(invoice.issueDate),
+        dueDate: new Date(invoice.dueDate),
         items: invoice.items,
         subtotal: invoice.subtotal,
         tax: invoice.tax,
@@ -208,6 +225,37 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCan
                 readOnly
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-100"
               />
+            </div>
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                Statut *
+              </label>
+              <div className="relative">
+                <select
+                  id="status"
+                  value={formData.status}
+                  onChange={(e) => setFormData({...formData, status: e.target.value as any})}
+                  className="block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg shadow-sm appearance-none cursor-pointer"
+                  style={{
+                    backgroundColor: getStatusColor(formData.status).bg,
+                    color: getStatusColor(formData.status).text,
+                    fontWeight: 500,
+                    paddingRight: '2.5rem',
+                  }}
+                  required
+                >
+                  <option value="draft" className="bg-white text-gray-900">Brouillon</option>
+                  <option value="sent" className="bg-white text-gray-900">Envoyée</option>
+                  <option value="paid" className="bg-white text-gray-900">Payée</option>
+                  <option value="overdue" className="bg-white text-gray-900">En retard</option>
+                  <option value="cancelled" className="bg-white text-gray-900">Annulée</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                  </svg>
+                </div>
+              </div>
             </div>
             <div>
               <label htmlFor="issueDate" className="block text-sm font-medium text-gray-700">

@@ -26,4 +26,5 @@ export interface Invoice {
 
 export interface InvoiceFormData extends Omit<Invoice, 'id' | 'createdAt' | 'updatedAt' | 'invoiceNumber' | 'items'> {
   items: Array<Omit<InvoiceItem, 'id' | 'total'>>;
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 }

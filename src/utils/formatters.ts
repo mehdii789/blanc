@@ -6,24 +6,56 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-export const formatDate = (date: Date): string => {
-  // Utiliser 'fr-FR' pour le format français
-  return new Intl.DateTimeFormat('fr-FR', {
-    year: 'numeric',
-    month: 'long', // Utiliser 'long' pour avoir le mois en toutes lettres
-    day: 'numeric',
-  }).format(date);
+export const formatDate = (date: Date | string | null | undefined): string => {
+  if (!date) return 'Date non disponible';
+  
+  try {
+    // Si c'est une chaîne, on la convertit en Date
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Vérifier si la date est valide
+    if (isNaN(dateObj.getTime())) {
+      console.error('Date invalide:', date);
+      return 'Date invalide';
+    }
+    
+    // Utiliser 'fr-FR' pour le format français
+    return new Intl.DateTimeFormat('fr-FR', {
+      year: 'numeric',
+      month: 'long', // Utiliser 'long' pour avoir le mois en toutes lettres
+      day: 'numeric',
+    }).format(dateObj);
+  } catch (error) {
+    console.error('Erreur de formatage de date:', error);
+    return 'Erreur de date';
+  }
 };
 
-export const formatDateTime = (date: Date): string => {
-  return new Intl.DateTimeFormat('fr-FR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false // Utiliser le format 24h
-  }).format(date);
+export const formatDateTime = (date: Date | string | null | undefined): string => {
+  if (!date) return 'Date non disponible';
+  
+  try {
+    // Si c'est une chaîne, on la convertit en Date
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Vérifier si la date est valide
+    if (isNaN(dateObj.getTime())) {
+      console.error('Date/heure invalide:', date);
+      return 'Date/heure invalide';
+    }
+    
+    return new Intl.DateTimeFormat('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false // Utiliser le format 24h
+    }).format(dateObj);
+  } catch (error) {
+    console.error('Erreur de formatage de date/heure:', error);
+    return 'Erreur de date/heure';
+  }
 };
 
 export const formatPhoneNumber = (phone: string): string => {

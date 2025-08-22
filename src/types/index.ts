@@ -10,13 +10,20 @@ export interface Customer {
   createdAt: Date;
 }
 
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'check';
+
+export interface OrderService extends Service {
+  quantity: number;
+}
+
 export interface Order {
   id: string;
   customerId: string;
-  services: Service[];
+  services: OrderService[];
   status: OrderStatus;
   totalAmount: number;
   paid: boolean;
+  paymentMethod: PaymentMethod;
   notes: string;
   createdAt: Date;
   updatedAt: Date;
