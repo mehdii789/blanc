@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --legacy-peer-deps && npm run build"
+  command = "npm install && npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
@@ -32,14 +32,13 @@
 # Paramètres de build pour Vite
 [context.production.environment]
   VITE_API_URL = "/api"
-  NODE_OPTIONS = "--openssl-legacy-provider"
 
 # Configuration pour les branches
 [context.deploy-preview]
-  command = "npm install --legacy-peer-deps && npm run build"
+  command = "npm install && npm run build"
 
 [context.branch-deploy]
-  command = "npm install --legacy-peer-deps && npm run build"
+  command = "npm install && npm run build"
 
 [context.production]
-  command = "npm install --legacy-peer-deps && npm run build"
+  command = "npm install && npm run build"
