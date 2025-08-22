@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './',
+  base: '/',
   
   // Configuration du build
   build: {
@@ -13,6 +13,11 @@ export default defineConfig({
     sourcemap: false,
     minify: 'esbuild',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
   
   // Configuration du serveur de développement
