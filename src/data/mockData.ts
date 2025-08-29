@@ -1,4 +1,4 @@
-import { Customer, Order, Service, Employee, InventoryItem, Invoice } from '../types';
+import { Customer, Order, Service, Employee, InventoryItem, Invoice, ClientAccess, ServicePack, ClientOrder } from '../types';
 
 export const mockCustomers: Customer[] = [
   {
@@ -478,3 +478,159 @@ export const createInvoiceFromOrder = (order: Order): Omit<Invoice, 'id' | 'crea
     status: order.paid ? 'paid' : 'draft'
   };
 };
+
+// Données mockées pour les accès clients
+export const mockClientAccess: ClientAccess[] = [
+  {
+    id: 'access_1',
+    customerId: '1',
+    accessCode: 'JEAN2025',
+    isActive: true,
+    createdAt: new Date('2025-01-15'),
+    lastLogin: new Date('2025-08-25')
+  },
+  {
+    id: 'access_2',
+    customerId: '2',
+    accessCode: 'MARIE789',
+    isActive: true,
+    createdAt: new Date('2025-02-20'),
+    lastLogin: new Date('2025-08-20')
+  },
+  {
+    id: 'access_3',
+    customerId: '3',
+    accessCode: 'ROBERT456',
+    isActive: true,
+    createdAt: new Date('2025-03-10'),
+    lastLogin: new Date('2025-08-15')
+  },
+  {
+    id: 'access_4',
+    customerId: '4',
+    accessCode: 'SOPHIE123',
+    isActive: true,
+    createdAt: new Date('2025-04-05')
+  },
+  {
+    id: 'access_5',
+    customerId: '5',
+    accessCode: 'MICHEL999',
+    isActive: true,
+    createdAt: new Date('2025-05-12'),
+    lastLogin: new Date('2025-08-10')
+  }
+];
+
+// Données mockées pour les packs de services
+export const mockServicePacks: ServicePack[] = [
+  {
+    id: 'pack_1',
+    name: 'Pack Familial Standard',
+    description: 'Idéal pour une famille de 4 personnes - Lavage et pliage de 15kg de linge',
+    services: [
+      { serviceId: '1', serviceName: 'Lavage & Pliage', quantity: 15, unitPrice: 2.50 }
+    ],
+    totalPrice: 37.50,
+    estimatedTime: 24,
+    isActive: true,
+    category: 'standard'
+  },
+  {
+    id: 'pack_2',
+    name: 'Pack Express Professionnel',
+    description: 'Service rapide pour professionnels - Lavage express + repassage de chemises',
+    services: [
+      { serviceId: '3', serviceName: 'Lavage Express', quantity: 8, unitPrice: 3.50 },
+      { serviceId: '5', serviceName: 'Repassage', quantity: 10, unitPrice: 3.00 }
+    ],
+    totalPrice: 58.00,
+    estimatedTime: 8,
+    isActive: true,
+    category: 'express'
+  },
+  {
+    id: 'pack_3',
+    name: 'Pack Premium Complet',
+    description: 'Service haut de gamme - Nettoyage à sec + repassage premium',
+    services: [
+      { serviceId: '2', serviceName: 'Nettoyage à sec', quantity: 5, unitPrice: 6.00 },
+      { serviceId: '5', serviceName: 'Repassage', quantity: 5, unitPrice: 3.00 }
+    ],
+    totalPrice: 45.00,
+    estimatedTime: 48,
+    isActive: true,
+    category: 'premium'
+  },
+  {
+    id: 'pack_4',
+    name: 'Pack Literie Confort',
+    description: 'Spécialisé literie - Couettes, oreillers et couvertures',
+    services: [
+      { serviceId: '4', serviceName: 'Literie', quantity: 3, unitPrice: 15.00 }
+    ],
+    totalPrice: 45.00,
+    estimatedTime: 48,
+    isActive: true,
+    category: 'literie'
+  },
+  {
+    id: 'pack_5',
+    name: 'Pack Économique',
+    description: 'Solution économique - Lavage simple 10kg',
+    services: [
+      { serviceId: '1', serviceName: 'Lavage & Pliage', quantity: 10, unitPrice: 2.50 }
+    ],
+    totalPrice: 25.00,
+    estimatedTime: 24,
+    isActive: true,
+    category: 'standard'
+  },
+  {
+    id: 'pack_6',
+    name: 'Pack Professionnel Grande Capacité',
+    description: 'Pour entreprises - Lavage et repassage en grande quantité',
+    services: [
+      { serviceId: '1', serviceName: 'Lavage & Pliage', quantity: 25, unitPrice: 2.50 },
+      { serviceId: '5', serviceName: 'Repassage', quantity: 15, unitPrice: 3.00 }
+    ],
+    totalPrice: 107.50,
+    estimatedTime: 48,
+    isActive: true,
+    category: 'professionnel'
+  }
+];
+
+// Données mockées pour les commandes clients
+export const mockClientOrders: ClientOrder[] = [
+  {
+    id: 'client_order_1',
+    clientAccessId: 'access_1',
+    customerId: '1',
+    packs: [
+      { packId: 'pack_1', packName: 'Pack Familial Standard', quantity: 1, unitPrice: 37.50, total: 37.50 }
+    ],
+    totalAmount: 37.50,
+    status: 'en_traitement',
+    notes: 'Commande passée via le portail client',
+    pickupDate: new Date('2025-08-28'),
+    deliveryDate: new Date('2025-08-29'),
+    createdAt: new Date('2025-08-26'),
+    updatedAt: new Date('2025-08-26')
+  },
+  {
+    id: 'client_order_2',
+    clientAccessId: 'access_2',
+    customerId: '2',
+    packs: [
+      { packId: 'pack_2', packName: 'Pack Express Professionnel', quantity: 1, unitPrice: 58.00, total: 58.00 }
+    ],
+    totalAmount: 58.00,
+    status: 'pret',
+    notes: 'Urgent - commande express',
+    pickupDate: new Date('2025-08-26'),
+    deliveryDate: new Date('2025-08-27'),
+    createdAt: new Date('2025-08-25'),
+    updatedAt: new Date('2025-08-26')
+  }
+];

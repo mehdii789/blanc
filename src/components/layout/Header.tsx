@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bell, Search, Menu } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import NotificationSystem from '../notifications/NotificationSystem';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -27,6 +27,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         return 'Rapports et analyses';
       case 'settings':
         return 'Paramètres système';
+      case 'client-access':
+        return 'Gestion des Accès Clients';
       default:
         return 'BlanchPro';
     }
@@ -40,7 +42,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
           className="md:hidden mr-3 text-gray-600 hover:text-gray-900 focus:outline-none"
           aria-label="Toggle menu"
         >
-          <Menu size={24} />
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
         </button>
         <h2 className="text-lg sm:text-xl font-semibold text-gray-800">{getHeaderTitle()}</h2>
       </div>
@@ -52,18 +56,21 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             placeholder="Rechercher..."
             className="pl-10 pr-4 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all w-40 md:w-56 lg:w-64"
           />
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+          <svg className="absolute left-3 top-2.5 text-gray-400 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
         </div>
         
-        <div className="relative">
-          <button className="text-gray-600 hover:text-blue-600 transition-colors p-1">
-            <Bell size={20} />
-            <span className="sr-only">Notifications</span>
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
-              <span className="sr-only">3 nouvelles notifications</span>
-              <span aria-hidden="true">3</span>
-            </span>
-          </button>
+        <div className="flex items-center space-x-4">
+          <NotificationSystem />
+          <div className="text-sm text-gray-600">
+            {new Date().toLocaleDateString('fr-FR', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </div>
         </div>
       </div>
     </header>

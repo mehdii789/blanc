@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { X } from 'lucide-react';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface CustomerFormProps {
   customerId?: string | null;
@@ -11,13 +13,15 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
   customerId, 
   onClose 
 }) => {
-  const { customers, addCustomer, updateCustomer } = useApp();
+  const { customers, addCustomer, updateCustomer, addClientAccess } = useApp();
   
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     address: '',
+    city: '',
+    postalCode: '',
     notes: ''
   });
   
@@ -32,13 +36,26 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
       const customer = customers.find(c => c.id === customerId);
       if (customer) {
         setFormData({
-          name: customer.name,
-          email: customer.email,
-          phone: customer.phone,
-          address: customer.address,
-          notes: customer.notes
+          name: customer.name || '',
+          email: customer.email || '',
+          phone: customer.phone || '',
+          address: customer.address || '',
+          city: customer.city || '',
+          postalCode: customer.postalCode || '',
+          notes: customer.notes || ''
         });
       }
+    } else {
+      // Réinitialiser le formulaire pour une nouvelle entrée
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        postalCode: '',
+        notes: ''
+      });
     }
   }, [customerId, customers]);
   
@@ -82,6 +99,15 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
     }
   };
   
+  const generateAccessCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -94,11 +120,32 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
       if (customer) {
         updateCustomer({
           ...customer,
-          ...formData
+          ...formData,
+          id: customer.id,
+          createdAt: customer.createdAt
         });
+        toast.success('Client mis à jour avec succès');
       }
     } else {
-      addCustomer(formData);
+      // Créer un objet client temporaire pour obtenir l'ID
+      const tempCustomer = {
+        ...formData,
+        id: (customers.length + 1).toString(),
+        createdAt: new Date()
+      };
+      
+      // Ajouter le client
+      addCustomer(tempCustomer);
+      
+      // Générer et ajouter un code d'accès pour le nouveau client
+      const accessCode = generateAccessCode();
+      addClientAccess({
+        customerId: tempCustomer.id,
+        accessCode,
+        isActive: true
+      });
+      
+      toast.success(`Client créé avec succès. Code d'accès: ${accessCode}`);
     }
     
     onClose();
@@ -119,7 +166,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
       </div>
       
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nom*
@@ -173,8 +220,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
               <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
             )}
           </div>
-          
-          <div>
+          <div className="col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Adresse
             </label>
@@ -182,6 +228,32 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
               type="text"
               name="address"
               value={formData.address}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Ville
+            </label>
+            <input
+              type="text"
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Code postal
+            </label>
+            <input
+              type="text"
+              name="postalCode"
+              value={formData.postalCode}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

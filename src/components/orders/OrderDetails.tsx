@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ArrowLeft, Edit, Clock, User, Banknote, Building2, FileText, CreditCard } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { OrderStatus, Order, Service, PaymentMethod, Invoice, InvoiceItem } from '../../types';
+import { OrderStatus, Order, Service, PaymentMethod, Invoice, InvoiceItem, OrderService } from '../../types';
 import { useNavigate } from 'react-router-dom';
 
 interface OrderDetailsProps {
@@ -14,8 +14,10 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
   // Tous les Hooks sont maintenant en haut du composant
   const { 
     orders, 
+    clientOrders,
     customers, 
     updateOrderStatus,
+    updateClientOrderStatus,
     addInvoice
   } = useApp();
   const navigate = useNavigate();
@@ -35,8 +37,22 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
   
   const saveStatusChange = () => {
     if (!orderId) return;
-    updateOrderStatus(orderId, newStatus);
+    
+    // Vérifier si c'est une commande client (commence par 'client_')
+    const isClientOrder = orderId.startsWith('client_');
+    
+    if (isClientOrder) {
+      // Pour une commande client, utiliser updateClientOrderStatus
+      updateClientOrderStatus(orderId.replace('client_', ''), newStatus);
+    } else {
+      // Pour une commande normale, utiliser updateOrderStatus
+      updateOrderStatus(orderId, newStatus);
+    }
+    
     setIsUpdatingStatus(false);
+    
+    // Mettre à jour l'état local pour refléter le changement
+    setOrder(prev => prev ? { ...prev, status: newStatus, updatedAt: new Date() } : null);
   };
   
   const getStatusColor = (status: OrderStatus) => {
@@ -99,11 +115,50 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
       
       setIsLoading(true);
       try {
-        // Vérifier si la commande existe déjà dans la liste
-        console.log('Recherche de la commande avec ID:', orderId);
-        console.log('Liste complète des commandes:', orders);
+        // Vérifier si c'est une commande du portail client (commence par 'client_')
+        const isClientOrder = orderId.startsWith('client_');
+        console.log('Recherche de la commande avec ID:', orderId, 'isClientOrder:', isClientOrder);
         
-        const existingOrder = orders.find(o => o.id === orderId);
+        let existingOrder;
+        
+        if (isClientOrder) {
+          // Si c'est une commande du portail client, essayer de la trouver dans les clientOrders
+          const clientOrder = clientOrders.find(o => `client_${o.id}` === orderId);
+          
+          if (clientOrder) {
+            // Convertir la commande client en format Order pour l'affichage
+            // Convertir les packs en services pour l'affichage
+            const services: OrderService[] = clientOrder.packs.flatMap(pack => {
+              // Créer un service pour chaque pack
+              return {
+                id: pack.packId,
+                name: pack.packName,
+                description: `Pack de ${pack.quantity} x ${pack.packName}`,
+                price: pack.unitPrice,
+                quantity: pack.quantity,
+                estimatedTime: 24 // Valeur par défaut, à ajuster si nécessaire
+              };
+            });
+            
+            existingOrder = {
+              id: `client_${clientOrder.id}`,
+              customerId: clientOrder.customerId,
+              status: clientOrder.status as OrderStatus,
+              totalAmount: clientOrder.totalAmount,
+              paymentMethod: 'card' as PaymentMethod, // Par défaut pour les commandes en ligne
+              paid: false, // À ajuster selon votre logique de paiement
+              notes: clientOrder.notes || 'Commande passée via le portail client',
+              services: services,
+              createdAt: new Date(clientOrder.createdAt),
+              updatedAt: new Date(clientOrder.updatedAt),
+              dueDate: clientOrder.deliveryDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 jours par défaut
+            };
+          }
+        } else {
+          // Sinon, chercher dans les commandes normales
+          existingOrder = orders.find(o => o.id === orderId);
+        }
+        
         console.log('Commande trouvée:', existingOrder);
         
         if (existingOrder && isMounted) {
@@ -115,10 +170,8 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
           console.log('Services de la commande:', services);
           setOrderServices(services);
         } else if (isMounted) {
-          console.error(`Commande avec l'ID ${orderId} non trouvée dans la liste des commandes`);
-          console.warn(`Commande avec l'ID ${orderId} non trouvée dans la liste des commandes`);
-          // Optionnel : rediriger vers la liste des commandes avec un message d'erreur
-          // onBack();
+          console.error(`Commande avec l'ID ${orderId} non trouvée`);
+          console.warn(`Commande avec l'ID ${orderId} non trouvée`);
         }
       } catch (error) {
         console.error('Erreur lors du chargement de la commande:', error);
@@ -139,7 +192,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
     return () => {
       isMounted = false;
     };
-  }, [orderId, orders]);
+  }, [orderId, orders, clientOrders]);
 
   if (isLoading) {
     return (

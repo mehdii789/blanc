@@ -112,3 +112,55 @@ export interface DashboardStats {
   dailyRevenue: number;
   lowInventoryItems: number;
 }
+
+// Types pour le portail client
+export interface ClientAccess {
+  id: string;
+  customerId: string;
+  accessCode: string;
+  isActive: boolean;
+  createdAt: Date;
+  lastLogin?: Date;
+}
+
+export interface ServicePack {
+  id: string;
+  name: string;
+  description: string;
+  services: PackService[];
+  totalPrice: number;
+  estimatedTime: number;
+  isActive: boolean;
+  category: PackCategory;
+}
+
+export interface PackService {
+  serviceId: string;
+  serviceName: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export type PackCategory = 'standard' | 'express' | 'premium' | 'literie' | 'professionnel';
+
+export interface ClientOrder {
+  id: string;
+  clientAccessId: string;
+  customerId: string;
+  packs: OrderPack[];
+  totalAmount: number;
+  status: OrderStatus;
+  notes?: string;
+  pickupDate?: Date;
+  deliveryDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OrderPack {
+  packId: string;
+  packName: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}

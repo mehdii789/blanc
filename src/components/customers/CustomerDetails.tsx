@@ -67,35 +67,35 @@ export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customerId }) 
           </button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg text-blue-700 mt-0.5">
-              <Phone size={18} />
-            </div>
-            <div>
+        <div className="flex flex-col sm:flex-row gap-4 mb-8 w-full">
+          <div className="flex-1 min-w-0 bg-white p-4 rounded-lg border border-gray-100">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-blue-100 rounded-lg text-blue-700 flex-shrink-0">
+                <Phone size={18} />
+              </div>
               <p className="text-sm text-gray-500 font-medium">Téléphone</p>
-              <p className="text-gray-900">{customer.phone}</p>
             </div>
+            <p className="text-gray-900 break-words pl-11">{customer.phone}</p>
           </div>
           
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-green-100 rounded-lg text-green-700 mt-0.5">
-              <Mail size={18} />
-            </div>
-            <div>
+          <div className="flex-1 min-w-0 bg-white p-4 rounded-lg border border-gray-100">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-green-100 rounded-lg text-green-700 flex-shrink-0">
+                <Mail size={18} />
+              </div>
               <p className="text-sm text-gray-500 font-medium">E-mail</p>
-              <p className="text-gray-900">{customer.email}</p>
             </div>
+            <p className="text-gray-900 break-words pl-11 truncate">{customer.email}</p>
           </div>
           
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg text-purple-700 mt-0.5">
-              <MapPin size={18} />
-            </div>
-            <div>
+          <div className="flex-1 min-w-0 bg-white p-4 rounded-lg border border-gray-100">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-purple-100 rounded-lg text-purple-700 flex-shrink-0">
+                <MapPin size={18} />
+              </div>
               <p className="text-sm text-gray-500 font-medium">Adresse</p>
-              <p className="text-gray-900">{customer.address}</p>
             </div>
+            <p className="text-gray-900 break-words pl-11">{customer.address}</p>
           </div>
         </div>
         
@@ -106,98 +106,154 @@ export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customerId }) 
           </div>
         )}
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-blue-700 mb-1">Dépense totale</h4>
-            <p className="text-2xl font-bold text-blue-900">${totalSpent.toFixed(2)}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+          <div className="bg-blue-50 p-4 rounded-lg flex flex-col h-full w-full">
+            <h4 className="text-sm font-medium text-blue-700 mb-2">Dépense totale</h4>
+            <p className="text-2xl font-bold text-blue-900 mt-auto">${totalSpent.toFixed(2)}</p>
           </div>
           
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-green-700 mb-1">Total des commandes</h4>
-            <p className="text-2xl font-bold text-green-900">{totalOrders}</p>
+          <div className="bg-green-50 p-4 rounded-lg flex flex-col h-full w-full">
+            <h4 className="text-sm font-medium text-green-700 mb-2">Total des commandes</h4>
+            <p className="text-2xl font-bold text-green-900 mt-auto">{totalOrders}</p>
           </div>
           
-          <div className="bg-amber-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-amber-700 mb-1">Commandes en attente</h4>
-            <p className="text-2xl font-bold text-amber-900">{pendingOrders}</p>
+          <div className="bg-amber-50 p-4 rounded-lg flex flex-col h-full w-full">
+            <h4 className="text-sm font-medium text-amber-700 mb-2">Commandes en attente</h4>
+            <p className="text-2xl font-bold text-amber-900 mt-auto">{pendingOrders}</p>
           </div>
         </div>
       </div>
       
-      <div className="bg-white p-6 rounded-xl shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-800 mb-6">Historique des commandes</h3>
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 sm:mb-6">Historique des commandes</h3>
         
         {sortedOrders.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    N° de commande
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Services
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Montant
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Statut
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">#{order.id}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatDate(order.createdAt)}</div>
-                      <div className="text-xs text-gray-500 flex items-center gap-1">
-                        <Clock size={12} />
-                        <span>Due: {formatDate(order.dueDate)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {order.services.map(service => service.name).join(', ')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        ${order.totalAmount.toFixed(2)}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {order.paid ? 'Payé' : 'Non payé'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+          <div className="overflow-hidden">
+            {/* Version mobile */}
+            <div className="md:hidden space-y-4">
+              {sortedOrders.map((order) => (
+                <div key={order.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-medium text-gray-900">Commande #{order.id}</h4>
+                      <div className="text-sm text-gray-500">{formatDate(order.createdAt)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium text-gray-900">${order.totalAmount.toFixed(2)}</div>
+                      <div className="text-xs text-gray-500">{order.paid ? 'Payé' : 'Non payé'}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-gray-700 mb-2">
+                    <div className="font-medium mb-1">Services :</div>
+                    <div className="line-clamp-2">
+                      {order.services.map(service => service.name).join(', ')}
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-100">
+                    <div className="text-xs text-gray-500 flex items-center">
+                      <Clock size={12} className="mr-1" />
+                      <span>Échéance: {formatDate(order.dueDate)}</span>
+                    </div>
+                    <div>
                       {order.status === 'livre' ? (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
                           Livré
                         </span>
                       ) : order.status === 'annule' ? (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                        <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
                           Annulé
                         </span>
                       ) : (
                         <span className={`px-2 py-1 text-xs rounded-full ${
-                          order.status === 'en_attente'
-                            ? 'bg-yellow-100 text-yellow-800'
+                          order.status === 'en_attente' 
+                            ? 'bg-yellow-100 text-yellow-800' 
                             : 'bg-blue-100 text-blue-800'
                         }`}>
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Version desktop */}
+            <div className="hidden md:block">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        N° commande
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Services
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Montant
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Statut
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {sortedOrders.map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="font-medium text-sm text-gray-900">#{order.id}</div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{formatDate(order.createdAt)}</div>
+                          <div className="text-xs text-gray-500 flex items-center gap-1">
+                            <Clock size={12} />
+                            <span>Due: {formatDate(order.dueDate)}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 max-w-xs">
+                          <div className="text-sm text-gray-900 line-clamp-2">
+                            {order.services.map(service => service.name).join(', ')}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            ${order.totalAmount.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {order.paid ? 'Payé' : 'Non payé'}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {order.status === 'livre' ? (
+                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                              Livré
+                            </span>
+                          ) : order.status === 'annule' ? (
+                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                              Annulé
+                            </span>
+                          ) : (
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              order.status === 'en_attente'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         ) : (
           <p className="text-center py-6 text-gray-500">No order history found</p>

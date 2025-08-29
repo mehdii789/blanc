@@ -12,6 +12,10 @@ import { PaymentsPage } from './pages/PaymentsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import InvoicesPage from './pages/InvoicesPage';
+import ClientLoginPage from './pages/ClientLoginPage';
+import ClientPortalPage from './pages/ClientPortalPage';
+import ClientOrdersPage from './pages/ClientOrdersPage';
+import ClientAccessPage from './pages/ClientAccessPage';
 import { useApp } from './context/AppContext';
 
 // Composant pour gérer la vue protégée avec le Layout
@@ -51,6 +55,13 @@ const AppContent: React.FC = () => {
       <Route path="/invoices" element={renderWithLayout(<InvoicesPage />)} />
       <Route path="/reports" element={renderWithLayout(<ReportsPage />)} />
       <Route path="/settings" element={renderWithLayout(<SettingsPage />)} />
+      
+      {/* Routes pour le portail client */}
+      <Route path="/client-login" element={<ClientLoginPage />} />
+      <Route path="/client-portal" element={<ClientPortalPage />} />
+      <Route path="/client-orders" element={<ClientOrdersPage />} />
+      <Route path="/client-access" element={renderWithLayout(<ClientAccessPage />)} />
+      
       <Route path="*" element={renderWithLayout(<Navigate to="/dashboard" replace />)} />
     </Routes>
   );

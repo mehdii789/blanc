@@ -1,19 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Search, Plus, Trash2, CreditCard, Banknote, Building2, FileText, Eye } from 'lucide-react';
-import { OrderStatus, PaymentMethod } from '../../types';
+import { OrderStatus, PaymentMethod, Order, ClientOrder } from '../../types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { toast } from 'react-toastify';
 import { OrderForm } from './OrderForm';
 import { useNavigate } from 'react-router-dom';
 
 const OrderList = () => {
-  const { orders, customers, deleteOrder } = useApp();
+  const { 
+    orders, 
+    customers, 
+    deleteOrder, 
+    deleteClientOrder, 
+    clientOrders, 
+    servicePacks 
+  } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const navigate = useNavigate();
+
+  // Convertir les ClientOrder en format Order pour l'affichage unifié
+  const convertedClientOrders = useMemo(() => {
+    return clientOrders.map((clientOrder): Order => ({
+      id: `client_${clientOrder.id}`,
+      customerId: clientOrder.customerId,
+      services: clientOrder.packs.map(pack => {
+        const servicePack = servicePacks.find(sp => sp.id === pack.packId);
+        return {
+          id: pack.packId,
+          name: pack.packName,
+          price: pack.unitPrice,
+          description: servicePack?.description || 'Pack de services',
+          estimatedTime: servicePack?.estimatedTime || 24,
+          quantity: pack.quantity
+        };
+      }),
+      status: clientOrder.status,
+      totalAmount: clientOrder.totalAmount,
+      paid: false, // Les commandes client ne sont pas encore payées par défaut
+      notes: clientOrder.notes || 'Commande via portail client',
+      createdAt: clientOrder.createdAt,
+      updatedAt: clientOrder.updatedAt,
+      dueDate: clientOrder.deliveryDate || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) // 3 jours par défaut
+    }));
+  }, [clientOrders, servicePacks]);
+
+  // Combiner toutes les commandes
+  const allOrders = useMemo(() => {
+    return [...orders, ...convertedClientOrders].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [orders, convertedClientOrders]);
   
   const handleDeleteClick = (e: React.MouseEvent, orderId: string) => {
     e.stopPropagation();
@@ -22,10 +63,26 @@ const OrderList = () => {
   };
   
   const confirmDelete = () => {
-    if (orderToDelete) {
-      deleteOrder(orderToDelete);
+    if (!orderToDelete) return;
+    
+    try {
+      // Vérifier si c'est une commande client (commence par 'client_')
+      if (orderToDelete.startsWith('client_')) {
+        // Supprimer la commande client
+        const orderId = orderToDelete.replace('client_', '');
+        deleteClientOrder(orderId);
+        toast.success('Commande client supprimée avec succès');
+      } else {
+        // Supprimer une commande normale
+        deleteOrder(orderToDelete);
+        toast.success('Commande supprimée avec succès');
+      }
+      
       setShowDeleteDialog(false);
       setOrderToDelete(null);
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la commande:', error);
+      toast.error('Une erreur est survenue lors de la suppression de la commande');
     }
   };
   
@@ -87,7 +144,7 @@ const OrderList = () => {
     }
   };
   
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = allOrders.filter(order => {
     const customer = customers.find(c => c.id === order.customerId);
     const customerName = customer?.name || '';
     
@@ -174,7 +231,14 @@ const OrderList = () => {
                   >
                     {/* En-tête avec numéro de commande et date */}
                     <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
-                      <span className="text-base font-semibold text-gray-900">#{order.id.substring(0, 8)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-semibold text-gray-900">#{order.id.substring(0, 8)}</span>
+                        {order.id.startsWith('client_') && (
+                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                            Portail Client
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs text-gray-500">{formatDate(order.createdAt)}</span>
                     </div>
                     
@@ -255,9 +319,16 @@ const OrderList = () => {
                           onClick={() => handleViewOrder(order.id)}
                         >
                           <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              #{order.id.substring(0, 8)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                #{order.id.substring(0, 8)}
+                              </span>
+                              {order.id.startsWith('client_') && (
+                                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
+                                  Portail
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{customerName}</div>
@@ -343,7 +414,17 @@ const OrderList = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Supprimer la commande</h3>
-            <p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible.</p>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer cette commande ? 
+              {orderToDelete?.startsWith('client_') && (
+                <span className="block mt-2 text-blue-600">
+                  Le client sera notifié de la suppression de sa commande.
+                </span>
+              )}
+              <span className="block mt-2 font-medium text-red-600">
+                Cette action est irréversible.
+              </span>
+            </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={cancelDelete}

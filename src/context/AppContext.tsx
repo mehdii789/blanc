@@ -7,7 +7,10 @@ import {
   Service, 
   Employee, 
   InventoryItem,
-  Invoice
+  Invoice,
+  ClientAccess,
+  ServicePack,
+  ClientOrder
 } from '../types';
 import { 
   mockCustomers, 
@@ -15,8 +18,24 @@ import {
   mockServices, 
   mockEmployees, 
   mockInventoryItems,
-  mockInvoices
+  mockInvoices,
+  mockClientAccess,
+  mockServicePacks,
+  mockClientOrders
 } from '../data/mockData';
+import {
+  applyInventoryConsumption,
+  restoreInventoryConsumption,
+  checkInventoryAvailability,
+  calculateTheoreticalInventory,
+  getLowStockItems,
+  getOutOfStockItems,
+  INVENTORY_CONSUMING_STATUSES,
+  NON_CONSUMING_STATUSES,
+  checkClientOrderInventoryAvailability,
+  applyClientOrderInventoryConsumption,
+  serviceInventoryMappings
+} from '../utils/inventorySync';
 
 interface AppContextType {
   customers: Customer[];
@@ -25,6 +44,9 @@ interface AppContextType {
   employees: Employee[];
   inventoryItems: InventoryItem[];
   invoices: Invoice[];
+  clientAccess: ClientAccess[];
+  servicePacks: ServicePack[];
+  clientOrders: ClientOrder[];
   
   // Clients
   addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => void;
@@ -42,6 +64,10 @@ interface AppContextType {
   addInventoryItem: (item: Omit<InventoryItem, 'id'>) => void;
   updateInventoryItem: (item: InventoryItem) => void;
   deleteInventoryItem: (id: string) => void;
+  checkInventoryForOrder: (order: Order) => { available: boolean; shortages: { itemName: string; required: number; available: number }[] };
+  getTheoreticalInventory: () => InventoryItem[];
+  getLowStockItems: () => InventoryItem[];
+  getOutOfStockItems: () => InventoryItem[];
   
   // Factures
   addInvoice: (invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -72,11 +98,24 @@ interface AppContextType {
   setSelectedOrderId: (id: string | null) => void;
   selectedInvoiceId: string | null;
   setSelectedInvoiceId: (id: string | null) => void;
+  
+  // Portail Client
+  addClientAccess: (access: Omit<ClientAccess, 'id' | 'createdAt'>) => void;
+  updateClientAccess: (access: ClientAccess) => void;
+  deleteClientAccess: (id: string) => void;
+  addServicePack: (pack: Omit<ServicePack, 'id'>) => void;
+  updateServicePack: (pack: ServicePack) => void;
+  deleteServicePack: (id: string) => void;
+  addClientOrder: (order: Omit<ClientOrder, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateClientOrderStatus: (orderId: string, status: OrderStatus) => void;
+  updateClientOrder: (order: ClientOrder) => void;
+  deleteClientOrder: (id: string) => void;
+  checkClientOrderInventory: (order: ClientOrder) => { available: boolean; shortages: { itemName: string; required: number; available: number }[] };
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export // Fonction pour convertir les chaînes de date en objets Date
+// Fonction pour convertir les chaînes de date en objets Date
 const parseDates = (obj: any): any => {
   if (obj === null || typeof obj !== 'object') {
     return obj;
@@ -147,6 +186,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [invoices, setInvoices] = useState<Invoice[]>(
     loadFromLocalStorage<Invoice[]>('invoices', mockInvoices)
   );
+  const [clientAccess, setClientAccess] = useState<ClientAccess[]>(
+    loadFromLocalStorage<ClientAccess[]>('clientAccess', mockClientAccess)
+  );
+  const [servicePacks, setServicePacks] = useState<ServicePack[]>(
+    loadFromLocalStorage<ServicePack[]>('servicePacks', mockServicePacks)
+  );
+  const [clientOrders, setClientOrders] = useState<ClientOrder[]>(
+    loadFromLocalStorage<ClientOrder[]>('clientOrders', mockClientOrders)
+  );
   
   // Sauvegarder les données dans le localStorage lorsqu'elles changent
   useEffect(() => {
@@ -156,6 +204,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     localStorage.setItem('orders', JSON.stringify(orders));
   }, [orders]);
+  
+  useEffect(() => {
+    localStorage.setItem('clientAccess', JSON.stringify(clientAccess));
+  }, [clientAccess]);
+  
+  useEffect(() => {
+    localStorage.setItem('servicePacks', JSON.stringify(servicePacks));
+  }, [servicePacks]);
+  
+  useEffect(() => {
+    localStorage.setItem('clientOrders', JSON.stringify(clientOrders));
+  }, [clientOrders]);
   
   useEffect(() => {
     localStorage.setItem('invoices', JSON.stringify(invoices));
@@ -217,21 +277,105 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const addOrder = (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => {
+    // Créer un nouvel ID unique basé sur le timestamp
     const newOrder: Order = {
       ...order,
-      id: (orders.length + 1).toString(),
+      id: Date.now().toString(),
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    setOrders([...orders, newOrder]);
+
+    // Vérifier la disponibilité de l'inventaire si la commande consomme des ressources
+    let updatedInventory = [...inventoryItems];
+    if (INVENTORY_CONSUMING_STATUSES.includes(newOrder.status)) {
+      const availability = checkInventoryAvailability(newOrder, updatedInventory);
+      if (!availability.available) {
+        console.warn('Inventaire insuffisant pour la commande:', availability.shortages);
+        // Ici, vous pourriez vouloir lever une exception ou retourner une erreur
+        // pour empêcher la création de la commande
+        throw new Error('Stock insuffisant pour créer cette commande');
+      }
+      
+      // Appliquer la consommation d'inventaire
+      updatedInventory = applyInventoryConsumption(newOrder, updatedInventory);
+    }
+
+    // Mettre à jour l'état des commandes
+    const updatedOrders = [...orders, newOrder];
+    setOrders(updatedOrders);
+    
+    // Sauvegarder les commandes mises à jour
+    saveToLocalStorage('orders', updatedOrders);
+    
+    // Mettre à jour l'inventaire si nécessaire
+    if (INVENTORY_CONSUMING_STATUSES.includes(newOrder.status)) {
+      setInventoryItems(updatedInventory);
+      saveToLocalStorage('inventory', updatedInventory);
+    }
   };
 
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status, updatedAt: new Date() } 
-        : order
-    ));
+    console.log(`Mise à jour du statut de la commande ${orderId} vers:`, status);
+    
+    const orderToUpdate = orders.find(order => order.id === orderId);
+    if (!orderToUpdate) {
+      console.warn(`Commande non trouvée: ${orderId}`);
+      return;
+    }
+
+    const oldStatus = orderToUpdate.status;
+    const wasConsuming = INVENTORY_CONSUMING_STATUSES.includes(oldStatus);
+    const willConsume = INVENTORY_CONSUMING_STATUSES.includes(status);
+
+    console.log(`Ancien statut: ${oldStatus}, Nouveau statut: ${status}`);
+    console.log(`Consommation avant/après: ${wasConsuming}/${willConsume}`);
+
+    let updatedInventory = [...inventoryItems];
+    let inventoryUpdated = false;
+
+    // Gérer les changements d'inventaire selon le changement de statut
+    if (!wasConsuming && willConsume) {
+      // La commande commence à consommer l'inventaire
+      console.log('Application de la consommation d\'inventaire');
+      updatedInventory = applyInventoryConsumption(orderToUpdate, updatedInventory);
+      inventoryUpdated = true;
+    } else if (wasConsuming && !willConsume) {
+      // La commande arrête de consommer l'inventaire (annulation)
+      console.log('Restauration de l\'inventaire');
+      updatedInventory = restoreInventoryConsumption(orderToUpdate, updatedInventory);
+      inventoryUpdated = true;
+    } else if (wasConsuming && willConsume) {
+      // La commande change de statut mais continue de consommer - recalculer la consommation
+      console.log('Recalcul de la consommation d\'inventaire');
+      updatedInventory = restoreInventoryConsumption(orderToUpdate, updatedInventory);
+      updatedInventory = applyInventoryConsumption(
+        { ...orderToUpdate, status }, 
+        updatedInventory
+      );
+      inventoryUpdated = true;
+    }
+
+    // Mettre à jour l'inventaire si nécessaire
+    if (inventoryUpdated) {
+      console.log('Mise à jour de l\'inventaire:', updatedInventory);
+      setInventoryItems(updatedInventory);
+      saveToLocalStorage('inventory', updatedInventory);
+    }
+
+    // Mettre à jour la commande
+    const updatedOrder = { 
+      ...orderToUpdate, 
+      status, 
+      updatedAt: new Date() 
+    };
+    
+    const updatedOrders = orders.map(order => 
+      order.id === orderId ? updatedOrder : order
+    );
+    
+    console.log('Mise à jour de la commande:', updatedOrder);
+    setOrders(updatedOrders);
+    saveToLocalStorage('orders', updatedOrders);
   };
 
   const updateOrder = (updatedOrder: Order) => {
@@ -250,6 +394,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const deleteOrder = (id: string) => {
+    const orderToDelete = orders.find(order => order.id === id);
+    
+    // Restaurer l'inventaire si la commande consommait des ressources
+    if (orderToDelete && INVENTORY_CONSUMING_STATUSES.includes(orderToDelete.status)) {
+      const updatedInventory = restoreInventoryConsumption(orderToDelete, inventoryItems);
+      setInventoryItems(updatedInventory);
+      saveToLocalStorage('inventory', updatedInventory);
+    }
+    
     const updatedOrders = orders.filter(order => order.id !== id);
     setOrders(updatedOrders);
     saveToLocalStorage('orders', updatedOrders);
@@ -476,6 +629,207 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return true;
   };
 
+  // Nouvelles fonctions pour la gestion de l'inventaire
+  const checkInventoryForOrder = (order: Order) => {
+    return checkInventoryAvailability(order, inventoryItems);
+  };
+
+  const getTheoreticalInventory = () => {
+    return calculateTheoreticalInventory(inventoryItems, orders);
+  };
+
+  const getLowStockItemsList = () => {
+    return getLowStockItems(inventoryItems);
+  };
+
+  const getOutOfStockItemsList = () => {
+    return getOutOfStockItems(inventoryItems);
+  };
+
+  // Fonctions pour la gestion du portail client
+  const addClientAccess = (access: Omit<ClientAccess, 'id' | 'createdAt'>) => {
+    const newAccess: ClientAccess = {
+      ...access,
+      id: `access_${Date.now()}`,
+      createdAt: new Date()
+    };
+    setClientAccess([...clientAccess, newAccess]);
+  };
+
+  const updateClientAccess = (updatedAccess: ClientAccess) => {
+    setClientAccess(clientAccess.map(access => 
+      access.id === updatedAccess.id ? updatedAccess : access
+    ));
+  };
+
+  const deleteClientAccess = (id: string) => {
+    setClientAccess(clientAccess.filter(access => access.id !== id));
+  };
+
+  const addServicePack = (pack: Omit<ServicePack, 'id'>) => {
+    const newPack: ServicePack = {
+      ...pack,
+      id: `pack_${Date.now()}`
+    };
+    setServicePacks([...servicePacks, newPack]);
+  };
+
+  const updateServicePack = (updatedPack: ServicePack) => {
+    setServicePacks(servicePacks.map(pack => 
+      pack.id === updatedPack.id ? updatedPack : pack
+    ));
+  };
+
+  const deleteServicePack = (id: string) => {
+    setServicePacks(servicePacks.filter(pack => pack.id !== id));
+  };
+
+  const addClientOrder = (order: Omit<ClientOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newOrder: ClientOrder = {
+      ...order,
+      id: `client_order_${Date.now()}`,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Vérifier la disponibilité de l'inventaire avant de créer la commande
+    const availability = checkClientOrderInventoryAvailability(newOrder, servicePacks, inventoryItems);
+    if (!availability.available) {
+      throw new Error(`Stock insuffisant pour cette commande. Articles manquants: ${availability.shortages.map(s => `${s.itemName} (requis: ${s.required}, disponible: ${s.available})`).join(', ')}`);
+    }
+    
+    // Appliquer la consommation d'inventaire si nécessaire
+    let updatedInventory = [...inventoryItems];
+    if (INVENTORY_CONSUMING_STATUSES.includes(newOrder.status)) {
+      updatedInventory = applyClientOrderInventoryConsumption(newOrder, servicePacks, inventoryItems);
+      setInventoryItems(updatedInventory);
+      saveToLocalStorage('inventory', updatedInventory);
+    }
+    
+    const updatedClientOrders = [...clientOrders, newOrder];
+    setClientOrders(updatedClientOrders);
+    saveToLocalStorage('clientOrders', updatedClientOrders);
+    
+    return newOrder;
+  };
+
+  const updateClientOrderStatus = (orderId: string, status: OrderStatus) => {
+    const order = clientOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const oldStatus = order.status;
+    const updatedOrder = { ...order, status, updatedAt: new Date() };
+
+    // Gérer la synchronisation de l'inventaire
+    if (INVENTORY_CONSUMING_STATUSES.includes(oldStatus) && !INVENTORY_CONSUMING_STATUSES.includes(status)) {
+      // Restaurer l'inventaire si on passe d'un statut consommateur à non-consommateur
+      const restoredInventory = applyClientOrderInventoryConsumption(order, servicePacks, inventoryItems);
+      setInventoryItems(restoredInventory.map(item => {
+        const consumption = calculateClientOrderInventoryConsumption(order, servicePacks);
+        const consumptionForItem = consumption.find(c => c.itemId === item.id);
+        if (consumptionForItem) {
+          return { ...item, quantity: item.quantity + consumptionForItem.quantity };
+        }
+        return item;
+      }));
+    } else if (!INVENTORY_CONSUMING_STATUSES.includes(oldStatus) && INVENTORY_CONSUMING_STATUSES.includes(status)) {
+      // Consommer l'inventaire si on passe d'un statut non-consommateur à consommateur
+      const updatedInventory = applyClientOrderInventoryConsumption(updatedOrder, servicePacks, inventoryItems);
+      setInventoryItems(updatedInventory);
+    }
+
+    const updatedClientOrders = clientOrders.map(o => o.id === orderId ? updatedOrder : o);
+    setClientOrders(updatedClientOrders);
+    saveToLocalStorage('clientOrders', updatedClientOrders);
+  };
+
+  const updateClientOrder = (updatedOrder: ClientOrder) => {
+    const updatedClientOrders = clientOrders.map(order => 
+      order.id === updatedOrder.id ? { ...updatedOrder, updatedAt: new Date() } : order
+    );
+    setClientOrders(updatedClientOrders);
+    saveToLocalStorage('clientOrders', updatedClientOrders);
+  };
+
+  const deleteClientOrder = (id: string): boolean => {
+    try {
+      const order = clientOrders.find(o => o.id === id);
+      if (!order) return false;
+      
+      // Restaurer l'inventaire si la commande consommait des ressources
+      if (INVENTORY_CONSUMING_STATUSES.includes(order.status)) {
+        const restoredInventory = applyClientOrderInventoryConsumption(order, servicePacks, inventoryItems);
+        setInventoryItems(restoredInventory.map(item => {
+          const consumption = calculateClientOrderInventoryConsumption(order, servicePacks);
+          const consumptionForItem = consumption.find(c => c.itemId === item.id);
+          if (consumptionForItem) {
+            return { ...item, quantity: item.quantity + consumptionForItem.quantity };
+          }
+          return item;
+        }));
+      }
+      
+      // Mettre à jour la liste des commandes
+      const updatedClientOrders = clientOrders.filter(order => order.id !== id);
+      setClientOrders(updatedClientOrders);
+      
+      // Récupérer les informations du client via le customerId de la commande
+      const customer = customers.find(c => c.id === order.customerId);
+      if (customer) {
+        // Envoyer une notification au client (à implémenter selon votre système de notification)
+        console.log(`Notification envoyée au client ${customer.name} (${customer.email}) : ` +
+          `Votre commande #${id} a été supprimée. Veuillez nous contacter pour plus d'informations.`);
+        
+        // Optionnel : Ajouter une notification dans le système
+        // addNotification({
+        //   type: 'info',
+        //   message: `Le client ${customer.name} a été notifié de la suppression de sa commande #${id}`,
+        //   timestamp: new Date()
+        // });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la commande client:', error);
+      return false;
+    }
+  };
+
+  const checkClientOrderInventory = (order: ClientOrder) => {
+    return checkClientOrderInventoryAvailability(order, servicePacks, inventoryItems);
+  };
+
+  // Import nécessaire pour les fonctions d'inventaire client
+  const calculateClientOrderInventoryConsumption = (order: ClientOrder, packs: ServicePack[]) => {
+    const totalConsumption: { itemId: string; quantity: number }[] = [];
+    
+    order.packs.forEach(orderPack => {
+      const pack = packs.find(p => p.id === orderPack.packId);
+      if (pack) {
+        pack.services.forEach(packService => {
+          const mapping = serviceInventoryMappings.find(m => m.serviceId === packService.serviceId);
+          if (mapping) {
+            mapping.inventoryRequirements.forEach(req => {
+              const existing = totalConsumption.find(c => c.itemId === req.itemId);
+              const additionalQuantity = req.quantityPerUnit * packService.quantity * orderPack.quantity;
+              
+              if (existing) {
+                existing.quantity += additionalQuantity;
+              } else {
+                totalConsumption.push({
+                  itemId: req.itemId,
+                  quantity: additionalQuantity
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    return totalConsumption;
+  };
+
   const value: AppContextType = {
     customers,
     orders,
@@ -483,6 +837,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     employees,
     inventoryItems,
     invoices,
+    clientAccess,
+    servicePacks,
+    clientOrders,
     addCustomer,
     updateCustomer,
     deleteCustomer,
@@ -514,6 +871,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     selectedInvoiceId,
     setSelectedInvoiceId,
     resetAllOrdersPaymentStatus,
+    checkInventoryForOrder,
+    getTheoreticalInventory,
+    getLowStockItems: getLowStockItemsList,
+    getOutOfStockItems: getOutOfStockItemsList,
+    addClientAccess,
+    updateClientAccess,
+    deleteClientAccess,
+    addServicePack,
+    updateServicePack,
+    deleteServicePack,
+    addClientOrder,
+    updateClientOrderStatus,
+    updateClientOrder,
+    deleteClientOrder,
+    checkClientOrderInventory,
   };
 
   return (
