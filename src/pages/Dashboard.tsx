@@ -9,7 +9,7 @@ import {
   Calendar,
   BarChart3
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../hooks/useApp';
 import { OrderStatus } from '../types';
 import { OrderStatusChart } from '../components/dashboard/OrderStatusChart';
 import { RecentOrders } from '../components/dashboard/RecentOrders';

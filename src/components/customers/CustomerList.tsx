@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../hooks/useApp';
 import { CustomerForm } from './CustomerForm';
 import { Search, UserPlus, Edit, Trash, Mail, Phone, MapPin } from 'lucide-react';
 
-export const CustomerList: React.FC = () => {
-  const { customers, setSelectedCustomerId, deleteCustomer } = useApp();
+interface CustomerListProps {
+  onSelectCustomer?: (customerId: string) => void;
+}
+
+export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer }) => {
+  const { customers, deleteCustomer } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
@@ -16,7 +20,7 @@ export const CustomerList: React.FC = () => {
   );
 
   const handleViewCustomer = (customerId: string) => {
-    setSelectedCustomerId(customerId);
+    onSelectCustomer?.(customerId);
   };
   
   const handleEditCustomer = (customerId: string) => {

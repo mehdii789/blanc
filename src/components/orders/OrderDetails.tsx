@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
-import { ArrowLeft, Edit, Clock, User, Banknote, Building2, FileText, CreditCard } from 'lucide-react';
+import { useApp } from '../../hooks/useApp';
+import { ArrowLeft, Edit, Clock, User, Banknote, Building2, FileText, CreditCard, Activity } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { OrderStatus, Order, Service, PaymentMethod, Invoice, InvoiceItem, OrderService } from '../../types';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,8 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
   const { 
     orders, 
     clientOrders,
-    customers, 
+    customers,
+    servicePacks,
     updateOrderStatus,
     updateClientOrderStatus,
     addInvoice
@@ -129,14 +130,25 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
             // Convertir la commande client en format Order pour l'affichage
             // Convertir les packs en services pour l'affichage
             const services: OrderService[] = clientOrder.packs.flatMap(pack => {
-              // Créer un service pour chaque pack
+              // Trouver le pack correspondant pour obtenir ses détails
+              const servicePack = servicePacks.find(sp => sp.id === pack.packId);
+              
+              // Créer une description détaillée avec les services inclus
+              let description = `Pack de ${pack.quantity} x ${pack.packName}`;
+              if (servicePack && servicePack.services.length > 0) {
+                const servicesList = servicePack.services
+                  .map(s => `${s.serviceName} (x${s.quantity})`)
+                  .join(', ');
+                description += ` - Inclus: ${servicesList}`;
+              }
+              
               return {
                 id: pack.packId,
                 name: pack.packName,
-                description: `Pack de ${pack.quantity} x ${pack.packName}`,
+                description: description,
                 price: pack.unitPrice,
                 quantity: pack.quantity,
-                estimatedTime: 24 // Valeur par défaut, à ajuster si nécessaire
+                estimatedTime: servicePack?.estimatedTime || 24
               };
             });
             
@@ -220,33 +232,46 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
   // Les fonctions et constantes ont été déplacées en haut du composant pour respecter les règles des Hooks
   
   return (
-    <div className="space-y-6">
-      <div className="flex items-center">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center px-4 sm:px-0">
         <button
-          className="mr-4 p-2 rounded-full hover:bg-gray-100"
+          className="mr-3 p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors"
           onClick={onBack}
         >
           <ArrowLeft size={20} className="text-gray-500" />
         </button>
-        <h2 className="text-xl font-semibold text-gray-800">Détails de la commande</h2>
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Détails de la commande</h2>
       </div>
       
-      <div className="bg-white p-6 rounded-xl shadow-sm">
-        <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-2xl font-bold text-gray-800">Commande #{order.id}</h3>
-              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+        {/* En-tête mobile optimisé */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col gap-3">
+            {/* Ligne 1: Titre de commande */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base sm:text-2xl font-bold text-gray-800 break-words">
+                  Commande
+                </h3>
+                <p className="text-xs sm:text-sm font-mono text-gray-600 break-all mt-1">
+                  #{order.id}
+                </p>
+              </div>
+              <span className={`px-3 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0 ${getStatusColor(order.status)}`}>
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
               </span>
             </div>
-            <p className="text-gray-500">Créée le {formatDate(order.createdAt)}</p>
-          </div>
-          
-          <div className="flex flex-wrap gap-3">
+            
+            {/* Ligne 2: Date */}
+            <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-1">
+              <Clock size={14} className="flex-shrink-0" />
+              Créée le {formatDate(order.createdAt)}
+            </p>
+            
+            {/* Ligne 3: Bouton facture */}
             <button
               onClick={() => setShowCreateInvoice(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-md hover:shadow-lg font-medium text-sm"
             >
               <FileText size={16} />
               <span>Créer une facture</span>
@@ -254,46 +279,48 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
           </div>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
           {/* Carte Client */}
-          <div className="flex items-start gap-3 p-4 bg-white border border-gray-100 rounded-lg shadow-sm w-full">
-            <div className="p-2 bg-blue-50 rounded-lg text-blue-600 flex-shrink-0">
+          <div className="flex items-start gap-3 p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl shadow-sm w-full">
+            <div className="p-2 bg-blue-500 rounded-lg text-white flex-shrink-0">
               <User size={18} className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Client</p>
-              <p className="text-sm font-medium text-gray-900 truncate">{customer?.name}</p>
-              <p className="text-xs text-gray-500 mt-1">{customer?.phone}</p>
+              <p className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-1">Client</p>
+              <p className="text-sm font-semibold text-gray-900 break-words">{customer?.name}</p>
+              <p className="text-xs text-gray-600 mt-1">{customer?.phone}</p>
             </div>
           </div>
           
           {/* Carte Date d'échéance */}
-          <div className="flex items-start gap-3 p-4 bg-white border border-gray-100 rounded-lg shadow-sm w-full">
-            <div className="p-2 bg-amber-50 rounded-lg text-amber-600 flex-shrink-0">
+          <div className="flex items-start gap-3 p-3 sm:p-4 bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl shadow-sm w-full">
+            <div className="p-2 bg-amber-500 rounded-lg text-white flex-shrink-0">
               <Clock size={18} className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Date d'échéance</p>
-              <p className="text-sm font-medium text-gray-900">{formatDate(order.dueDate)}</p>
+              <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Échéance</p>
+              <p className="text-sm font-semibold text-gray-900">{formatDate(order.dueDate)}</p>
               {new Date() > order.dueDate && order.status !== 'livre' && order.status !== 'annule' && (
-                <p className="text-xs text-red-600 font-medium mt-1">En retard</p>
+                <p className="text-xs text-red-600 font-bold mt-1 flex items-center gap-1">
+                  ⚠️ En retard
+                </p>
               )}
             </div>
           </div>
           
           {/* Carte Statut de paiement */}
-          <div className="flex items-start gap-3 p-4 bg-white border border-gray-100 rounded-lg shadow-sm w-full">
-            <div className="p-2 bg-green-50 rounded-lg text-green-600 flex-shrink-0">
+          <div className="flex items-start gap-3 p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl shadow-sm w-full">
+            <div className="p-2 bg-green-500 rounded-lg text-white flex-shrink-0">
               {getPaymentMethodIcon(order.paymentMethod || 'cash')}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Paiement</p>
-              <p className="text-sm font-medium text-gray-900 mb-1">
+              <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">Paiement</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">
                 {getPaymentMethodLabel(order.paymentMethod || 'cash')}
               </p>
               {order.paid && (
-                <p className="text-xs font-medium text-green-600">
-                  Payé
+                <p className="text-xs font-bold text-green-600">
+                  ✅ Payé
                 </p>
               )}
             </div>
@@ -301,72 +328,83 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
         </div>
         
         {!isCompleted && (
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-md font-medium text-gray-800">Statut de la commande</h4>
+          <div className="mb-6 sm:mb-8 bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-xl border border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+              <h4 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Activity size={18} className="text-blue-600" />
+                Statut de la commande
+              </h4>
               {!isUpdatingStatus ? (
                 <button
                   onClick={() => setIsUpdatingStatus(true)}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-md hover:shadow-lg"
                 >
                   <Edit size={14} />
                   Modifier le statut
                 </button>
               ) : (
-                <div className="flex items-center justify-between mb-6">
-                  <button
-                    onClick={onBack}
-                    className="flex items-center text-gray-600 hover:text-gray-800"
-                  >
-                    <ArrowLeft className="mr-2 h-5 w-5" />
-                    Retour à la liste
-                  </button>
-                  <button
-                    onClick={saveStatusChange}
-                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    Enregistrer
-                  </button>
-                </div>
+                <button
+                  onClick={saveStatusChange}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm shadow-md hover:shadow-lg"
+                >
+                  ✓ Enregistrer
+                </button>
               )}
             </div>
             
             {isUpdatingStatus ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                 {statuses.map(status => (
                   <button
                     key={status}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                       newStatus === status 
-                        ? getStatusColor(status) 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? `${getStatusColor(status)} shadow-lg transform scale-105` 
+                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 shadow-sm'
                     }`}
                     onClick={() => handleStatusChange(status)}
                   >
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                    {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="relative pt-1">
-                <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+              <div className="relative">
+                {/* Barre de progression */}
+                <div className="overflow-hidden h-3 sm:h-4 mb-4 text-xs flex rounded-full bg-gray-300 shadow-inner">
                   {statuses.slice(0, 7).map((status, index) => {
                     const statusIndex = statuses.indexOf(order.status);
                     const isActive = index <= statusIndex && statusIndex < 7;
                     return (
                       <div
                         key={status}
-                        className={`shadow-none flex flex-col text-center whitespace-nowrap justify-center ${
-                          isActive ? 'bg-blue-500' : 'bg-gray-300'
+                        className={`flex flex-col justify-center transition-all duration-500 ${
+                          isActive ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gray-300'
                         }`}
                         style={{ width: `${100 / 7}%` }}
                       ></div>
                     );
                   })}
                 </div>
-                <div className="flex justify-between">
-                  <div className="text-xs text-gray-600">Début</div>
-                  <div className="text-xs text-gray-600">Prêt à récupérer</div>
+                
+                {/* Labels */}
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 font-medium">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    Début
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 font-medium">
+                    Prêt à récupérer
+                    <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                  </div>
+                </div>
+                
+                {/* Statut actuel */}
+                <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <p className="text-xs text-gray-500 mb-1">Statut actuel :</p>
+                  <span className={`inline-block px-3 py-1.5 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}>
+                    {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
+                  </span>
                 </div>
               </div>
             )}
@@ -374,83 +412,125 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) =
         )}
         
         <div>
-          <h4 className="text-md font-medium text-gray-800 mb-4">Détails de la commande</h4>
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="h-5 w-5 text-blue-600" />
+            <h4 className="text-lg font-semibold text-gray-900">Détails de la commande</h4>
+          </div>
           
-          <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <div className="inline-block min-w-full align-middle">
-              <div className="overflow-hidden shadow-sm ring-1 ring-gray-200 rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 hidden sm:table-header-group">
-                    <tr>
-                      <th scope="col" className="py-3.5 pl-6 pr-3 text-left text-sm font-semibold text-gray-900">
-                        Service
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Description
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
-                        Quantité
-                      </th>
-                      <th scope="col" className="px-6 py-3.5 text-right text-sm font-semibold text-gray-900">
-                        Prix unitaire
-                      </th>
-                      <th scope="col" className="px-6 py-3.5 text-right text-sm font-semibold text-gray-900">
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {orderServices.map((service, index) => {
-                      const quantity = (service as any).quantity || 1;
-                      const totalPrice = service.price * quantity;
-                      
-                      return (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="py-3 pl-6 pr-3 text-sm font-medium text-gray-900 sm:whitespace-nowrap">
-                            <div className="font-medium">{service.name}</div>
-                            <div className="sm:hidden text-gray-500 text-xs mt-1">
-                              {service.description}
-                              <div className="mt-1">
-                                <span className="font-medium">Quantité:</span> {quantity} × {formatCurrency(service.price)} = {formatCurrency(totalPrice)}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="hidden sm:table-cell px-3 py-4 text-sm text-gray-500">
-                            {service.description}
-                          </td>
-                          <td className="hidden sm:table-cell px-3 py-4 text-sm text-gray-900 text-right">
-                            {quantity}
-                          </td>
-                          <td className="hidden sm:table-cell px-6 py-4 text-sm text-gray-900 text-right">
-                            {formatCurrency(service.price)}
-                          </td>
-                          <td className="py-3 px-6 text-right text-sm font-medium text-gray-900 whitespace-nowrap">
-                            {formatCurrency(totalPrice)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    <tr className="bg-gray-50 border-t-2 border-gray-200">
-                      <td className="py-3 pl-6 text-sm font-medium text-gray-900 sm:hidden">
-                        Total
+          {/* Version Desktop - Tableau */}
+          <div className="hidden sm:block overflow-hidden shadow-md ring-1 ring-gray-200 rounded-xl">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                <tr>
+                  <th scope="col" className="py-4 pl-6 pr-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Service
+                  </th>
+                  <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th scope="col" className="px-3 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Qté
+                  </th>
+                  <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Prix unit.
+                  </th>
+                  <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {orderServices.map((service, index) => {
+                  const quantity = (service as any).quantity || 1;
+                  const totalPrice = service.price * quantity;
+                  
+                  return (
+                    <tr key={index} className="hover:bg-blue-50 transition-colors">
+                      <td className="py-4 pl-6 pr-3 text-sm">
+                        <div className="font-semibold text-gray-900">{service.name}</div>
                       </td>
-                      <td className="hidden sm:table-cell py-3 pl-6 pr-3 text-right text-sm font-medium text-gray-900" colSpan={2}>
-                        Montant total :
+                      <td className="px-3 py-4 text-sm text-gray-600 max-w-xs">
+                        <div className="line-clamp-2">{service.description}</div>
                       </td>
-                      <td className="py-3 px-6 text-right text-sm font-semibold text-gray-900">
-                        {formatCurrency(order.totalAmount)}
+                      <td className="px-3 py-4 text-sm text-gray-900 text-right font-medium">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 font-semibold">
+                          {quantity}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">
+                        {formatCurrency(service.price)}
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm font-bold text-gray-900">
+                        {formatCurrency(totalPrice)}
                       </td>
                     </tr>
-                  </tbody>
-                </table>
+                  );
+                })}
+              </tbody>
+              <tfoot className="bg-gradient-to-r from-gray-50 to-gray-100">
+                <tr>
+                  <td colSpan={4} className="py-4 pl-6 pr-3 text-right text-sm font-bold text-gray-900 uppercase">
+                    Montant total :
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-2xl font-bold text-blue-600">
+                      {formatCurrency(order.totalAmount)}
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Version Mobile - Cartes */}
+          <div className="sm:hidden space-y-3">
+            {orderServices.map((service, index) => {
+              const quantity = (service as any).quantity || 1;
+              const totalPrice = service.price * quantity;
+              
+              return (
+                <div key={index} className="bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-md border border-blue-100 p-4">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h5 className="font-bold text-gray-900 text-sm mb-2">{service.name}</h5>
+                      <p className="text-xs text-gray-600 leading-relaxed break-words">{service.description}</p>
+                    </div>
+                    <span className="flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold">
+                      x{quantity}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-3 border-t border-blue-200">
+                    <div className="text-xs text-gray-600">
+                      <span className="font-medium">{formatCurrency(service.price)}</span> / unité
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500 mb-1">Total</div>
+                      <div className="text-lg font-bold text-blue-600">{formatCurrency(totalPrice)}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Total Mobile */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-white font-bold uppercase text-sm">Montant Total</span>
+                <span className="text-2xl font-bold text-white">{formatCurrency(order.totalAmount)}</span>
               </div>
             </div>
           </div>
           
           {order.notes && (
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Notes</h4>
-              <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{order.notes}</p>
+            <div className="mt-6 bg-gradient-to-br from-amber-50 to-orange-50 border-l-4 border-amber-400 rounded-lg p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <FileText className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-bold text-amber-900 mb-2">📝 Notes de la commande</h4>
+                  <p className="text-sm text-gray-700 leading-relaxed">{order.notes}</p>
+                </div>
+              </div>
             </div>
           )}
         </div>

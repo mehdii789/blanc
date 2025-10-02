@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useDatabase } from '../../context/DatabaseContext';
 
 interface Notification {
   id: string;
@@ -11,7 +11,7 @@ interface Notification {
 }
 
 const NotificationSystem: React.FC = () => {
-  const { clientOrders } = useApp();
+  const { clientOrders } = useDatabase();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
 

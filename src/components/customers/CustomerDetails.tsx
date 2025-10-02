@@ -1,14 +1,15 @@
 import React from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../hooks/useApp';
 import { ArrowLeft, Edit, Phone, Mail, MapPin, Clock } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 
 interface CustomerDetailsProps {
   customerId: string;
+  onBack?: () => void;
 }
 
-export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customerId }) => {
-  const { customers, orders, setSelectedCustomerId } = useApp();
+export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customerId, onBack }) => {
+  const { customers, orders } = useApp();
   
   const customer = customers.find(c => c.id === customerId);
   
@@ -18,7 +19,7 @@ export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customerId }) 
         <p className="text-red-600">Client non trouvé</p>
         <button
           className="mt-4 px-4 py-2 text-blue-600 hover:text-blue-800"
-          onClick={() => setSelectedCustomerId(null)}
+          onClick={onBack}
         >
           Retour à la liste des clients
         </button>
@@ -46,7 +47,7 @@ export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customerId }) 
       <div className="flex items-center">
         <button
           className="mr-4 p-2 rounded-full hover:bg-gray-100"
-          onClick={() => setSelectedCustomerId(null)}
+          onClick={onBack}
         >
           <ArrowLeft size={20} className="text-gray-500" />
         </button>

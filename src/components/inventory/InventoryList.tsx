@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../hooks/useApp';
 import { Search, Plus, Edit, Trash2, AlertTriangle } from 'lucide-react';
 import { InventoryItemForm } from './InventoryItemForm';
 

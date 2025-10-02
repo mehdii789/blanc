@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../hooks/useApp';
 import { X, Plus, Minus, AlertTriangle } from 'lucide-react';
 import { Service } from '../../types';
 import { InventoryImpactDisplay } from './InventoryImpactDisplay';
+import { SimpleInventoryImpact } from '../services/SimpleInventoryImpact';
 import { validateServiceQuantity, calculateMaxQuantityForService } from '../../utils/inventoryValidation';
 
 interface OrderFormProps {
@@ -411,7 +412,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ onClose }) => {
           {/* Affichage de l'impact sur l'inventaire */}
           {formData.serviceItems.length > 0 && (
             <div className="mt-4">
-              <InventoryImpactDisplay 
+              <SimpleInventoryImpact 
                 services={formData.serviceItems}
                 inventoryItems={inventoryItems}
               />

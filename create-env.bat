@@ -1,0 +1,5 @@
+@echo off
+echo VITE_SUPABASE_URL=https://zmtotombhpklllxjuirb.supabase.co > .env.local
+echo VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptdG90b21iaHBrbGxseGp1aXJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2OTQwMjcsImV4cCI6MjA3NDI3MDAyN30.VMNxE-Tw-YGCsHzWhnx11xqVYsHMzgg4dfhtxKbocJg >> .env.local
+echo Configuration Supabase créée !
+type .env.local

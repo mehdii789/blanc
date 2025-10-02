@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ServicePack, PackCategory, ClientAccess, Customer, ClientOrder } from '../types';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../hooks/useApp';
 
 const ClientPortalPage: React.FC = () => {
-  const { servicePacks, clientOrders, addClientOrder, customers, inventoryItems, checkClientOrderInventory } = useApp();
+  const { servicePacks, clientOrders, addClientOrder, customers, inventoryItems } = useApp();
   const [currentClientAccess, setCurrentClientAccess] = useState<ClientAccess | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<PackCategory | 'all'>('all');
@@ -13,7 +13,21 @@ const ClientPortalPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
+  const [expandedPacks, setExpandedPacks] = useState<Set<string>>(new Set());
+  const [selectedPackForDetails, setSelectedPackForDetails] = useState<ServicePack | null>(null);
   const navigate = useNavigate();
+
+  const togglePackExpansion = (packId: string) => {
+    setExpandedPacks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(packId)) {
+        newSet.delete(packId);
+      } else {
+        newSet.add(packId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     const storedAccess = sessionStorage.getItem('clientAccess');
@@ -59,7 +73,8 @@ const ClientPortalPage: React.FC = () => {
       updatedAt: new Date()
     };
     
-    return checkClientOrderInventory(testOrder);
+    // TODO: Implement inventory check for client orders
+    return { available: true, missingItems: [] };
   };
 
   const addToCart = (pack: ServicePack) => {
@@ -194,67 +209,61 @@ const ClientPortalPage: React.FC = () => {
       <div className="max-w-7xl mx-auto w-full px-2 py-3 sm:px-4 sm:py-4">
         {/* Header */}
         <header className="bg-white/95 backdrop-blur-xl shadow-sm sm:shadow-md border-b border-gray-100 sticky top-0 z-50">
-          <div className="w-full px-3 sm:px-4">
-            <div className="flex justify-between items-center py-3 min-h-[60px]">
+          <div className="w-full px-2.5 sm:px-4">
+            <div className="flex justify-between items-center py-2 sm:py-3">
             {/* Logo et titre */}
-            <div className="flex items-center space-x-3 flex-1 min-w-0">
-              <div className="relative group flex-shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-60 group-hover:opacity-90 transition-all duration-500 animate-pulse"></div>
-                <div className="relative h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-2xl flex items-center justify-center shadow-2xl transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-                  <svg className="h-6 w-6 sm:h-8 sm:w-8 lg:h-9 lg:w-9 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="relative flex-shrink-0">
+                <div className="relative h-10 w-10 sm:h-14 sm:w-14 lg:h-16 lg:w-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg">
+                  <svg className="h-5 w-5 sm:h-8 sm:w-8 lg:h-9 lg:w-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
               </div>
               <div className="relative min-w-0 flex-1">
-                <h1 className="text-base sm:text-2xl lg:text-3xl font-black bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-900 bg-clip-text text-transparent tracking-tight truncate">
+                <h1 className="text-sm sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-900 bg-clip-text text-transparent tracking-tight truncate">
                   Portail Client
                 </h1>
-                <div className="flex items-center mt-0.5 sm:mt-1">
-                  <div className="relative inline-flex h-2 w-2 sm:h-3 sm:w-3 mr-2 flex-shrink-0">
+                <div className="flex items-center mt-0.5">
+                  <div className="relative inline-flex h-1.5 w-1.5 sm:h-3 sm:w-3 mr-1.5 sm:mr-2 flex-shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-emerald-500 shadow-lg"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-3 sm:w-3 bg-emerald-500"></span>
                   </div>
-                  <p className="text-xs sm:text-base lg:text-lg text-gray-700 font-semibold truncate">
-                    Bienvenue, <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-bold">{customer.name}</span>
+                  <p className="text-[10px] sm:text-base lg:text-lg text-gray-700 font-medium truncate">
+                    <span className="hidden sm:inline">Bienvenue, </span><span className="font-bold text-indigo-600">{customer.name}</span>
                   </p>
                 </div>
               </div>
             </div>
             
             {/* Navigation */}
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
               {/* Mes Commandes */}
               <button
                 onClick={() => navigate('/client-orders')}
-                className="group relative overflow-hidden px-3 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 font-bold text-xs sm:text-sm flex items-center justify-center min-w-[44px] min-h-[44px]"
+                className="group relative overflow-hidden p-2 sm:px-5 sm:py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-bold text-xs sm:text-sm flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:min-w-[44px] sm:min-h-[44px]"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative flex items-center">
-                  <svg className="h-5 w-5 sm:mr-2 transition-transform group-hover:rotate-12 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  <span className="hidden sm:inline whitespace-nowrap">Mes Commandes</span>
-                </div>
+                <svg className="h-4 w-4 sm:h-5 sm:w-5 sm:mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span className="hidden sm:inline whitespace-nowrap">Mes Commandes</span>
               </button>
               
               {/* Panier */}
               <button
                 onClick={() => setShowCart(true)}
-                className="group relative p-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="group relative p-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11"
                 aria-label="Panier"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
                 <div className="relative">
-                  <svg className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 2.5M7 13l2.5 2.5" />
                   </svg>
                   {cart.length > 0 && (
                     <>
-                      <div className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-xl border-2 border-white animate-bounce">
+                      <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] sm:text-xs font-bold rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center shadow-lg border border-white">
                         {cart.reduce((sum, item) => sum + item.quantity, 0)}
                       </div>
-                      <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-pink-400 opacity-30 animate-ping"></div>
                     </>
                   )}
                 </div>
@@ -287,10 +296,10 @@ const ClientPortalPage: React.FC = () => {
               {/* Déconnexion - Mobile */}
               <button
                 onClick={handleLogout}
-                className="md:hidden p-2.5 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="md:hidden p-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center w-9 h-9"
                 aria-label="Déconnexion"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </button>
@@ -391,13 +400,13 @@ const ClientPortalPage: React.FC = () => {
                   showFilters ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                 }`}>
                   <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-white/30 p-4 mt-2">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-2.5 w-full">
                       <button
                         onClick={() => {
                           setSelectedCategory('all');
                           setShowFilters(false);
                         }}
-                        className={`px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 shadow-md ${
+                        className={`w-full px-3 py-3 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 shadow-md ${
                           selectedCategory === 'all'
                             ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
                             : 'bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg border border-gray-200'
@@ -421,7 +430,7 @@ const ClientPortalPage: React.FC = () => {
                             setSelectedCategory(key as PackCategory);
                             setShowFilters(false);
                           }}
-                          className={`px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 shadow-md ${
+                          className={`w-full px-3 py-3 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 shadow-md ${
                             selectedCategory === key
                               ? `bg-gradient-to-r ${color} text-white shadow-lg`
                               : 'bg-white text-gray-700 hover:bg-gray-50 hover:shadow-lg border border-gray-200'
@@ -439,7 +448,7 @@ const ClientPortalPage: React.FC = () => {
               </div>
 
               {/* Liste des packs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-4 auto-rows-fr">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-4 lg:auto-rows-fr">
                 {filteredPacks.map((pack, index) => {
                   const availability = checkPackAvailability(pack, 1);
                   const categoryConfig = {
@@ -480,65 +489,81 @@ const ClientPortalPage: React.FC = () => {
                     }
                   };
                   const config = categoryConfig[pack.category] || categoryConfig.standard;
+                  const isExpanded = expandedPacks.has(pack.id);
                   
                   return (
                     <div 
                       key={pack.id} 
-                      className={`group relative bg-gradient-to-br ${config.bgGradient} rounded-lg p-4 mb-4 sm:mb-0 hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 border border-white/50 hover:border-white/70 animate-fade-in overflow-hidden w-full h-full flex flex-col`}
+                      className={`group relative bg-gradient-to-br ${config.bgGradient} rounded-lg p-4 hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5 border border-white/50 hover:border-white/70 animate-fade-in overflow-hidden w-full flex flex-col lg:h-full`}
                       style={{ 
                         animationDelay: `${index * 100}ms`,
-                        boxShadow: '0 4px 16px -4px rgba(0, 0, 0, 0.1)',
-                        minHeight: '480px',
-                        maxHeight: '480px'
+                        boxShadow: '0 4px 16px -4px rgba(0, 0, 0, 0.1)'
                       }}
                     >
                       {/* Effet de brillance au survol */}
                       <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
                       
                       {/* Badge catégorie flottant */}
-                      <div className={`absolute top-2 right-2 bg-gradient-to-r ${config.gradient} text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transform rotate-12 group-hover:rotate-6 group-hover:scale-105 transition-all duration-200 flex items-center z-20 border border-white/30 min-w-max`}>
+                      <div className={`absolute top-2 right-2 bg-gradient-to-r ${config.gradient} text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transform rotate-12 group-hover:rotate-6 group-hover:scale-105 transition-all duration-200 flex items-center z-10 border border-white/30 min-w-max`}>
                         <span className="text-xs mr-1.5">{config.emoji}</span>
                         <span className="text-xs whitespace-nowrap">{getCategoryLabel(pack.category)}</span>
                       </div>
                       
                       {/* En-tête du pack */}
-                      <div className="relative z-10 flex flex-col h-full pt-3 sm:pt-4">
-                        <div className="mb-4 sm:mb-6">
-                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-gray-800 transition-colors leading-tight min-h-[2.5rem] sm:min-h-[3rem] flex items-center pr-12 sm:pr-16">
-                            {pack.name}
+                      <div className="relative z-20 flex flex-col h-full pt-3 sm:pt-4">
+                        <div className="mb-3 sm:mb-4 flex-shrink-0 h-[8rem] sm:h-[7rem] lg:h-[8rem]">
+                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 group-hover:text-gray-800 transition-colors leading-snug pr-12 sm:pr-16 h-auto max-h-[3.5rem] lg:max-h-[3.5rem] overflow-hidden flex items-start">
+                            <span className="line-clamp-2">{pack.name}</span>
                           </h3>
-                          <p className="text-gray-600 text-xs sm:text-sm leading-relaxed min-h-[2rem] sm:min-h-[2.5rem]">{pack.description}</p>
+                          <p className="text-gray-600 text-xs sm:text-sm leading-relaxed h-auto max-h-[4rem] lg:max-h-[4rem] overflow-hidden">
+                            <span className="line-clamp-3">{pack.description}</span>
+                          </p>
                         </div>
                         
                         {/* Services inclus */}
-                        <div className="bg-white/80 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 backdrop-blur-sm border border-white/60 shadow-sm flex-1" style={{ minHeight: '160px', maxHeight: '160px' }}>
-                          <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3 flex items-center">
+                        <div className="relative z-30 bg-white/80 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 backdrop-blur-sm border border-white/60 shadow-sm flex-shrink-0 h-[180px] lg:h-[220px] flex flex-col">
+                          <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 flex items-center flex-shrink-0">
                             <svg className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
                             Services inclus
                           </h4>
-                          <div className="space-y-1.5 overflow-y-auto" style={{ maxHeight: '120px' }}>
-                            {pack.services.map((service, i) => (
-                              <div 
-                                key={service.serviceId} 
-                                className="flex justify-between items-start text-xs group/item p-1.5 rounded-lg hover:bg-white/50 transition-colors"
-                                style={{ transitionDelay: `${i * 50}ms` }}
-                              >
-                                <span className="text-gray-600 flex-1 flex items-start">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-indigo-400 to-purple-400 mr-2 mt-1 group-hover/item:scale-110 transition-transform flex-shrink-0"></span>
-                                  <span className="font-medium text-xs leading-tight">{service.serviceName}</span>
-                                </span>
-                                <span className="font-bold text-gray-900 bg-gradient-to-r from-white to-gray-50 px-2 py-0.5 rounded text-xs border border-gray-200 shadow-sm whitespace-nowrap ml-2 flex-shrink-0">
-                                  {(service.quantity * service.unitPrice).toFixed(2)}€
-                                </span>
-                              </div>
-                            ))}
+                          <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+                            <div className="space-y-1.5 pb-1">
+                              {pack.services.slice(0, isExpanded ? pack.services.length : 3).map((service, i) => (
+                                <div 
+                                  key={service.serviceId} 
+                                  className="flex justify-between items-start text-xs group/item p-1.5 rounded-lg hover:bg-white/50 transition-colors"
+                                  style={{ transitionDelay: `${i * 50}ms` }}
+                                >
+                                  <span className="text-gray-600 flex-1 flex items-start">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-indigo-400 to-purple-400 mr-2 mt-1 group-hover/item:scale-110 transition-transform flex-shrink-0"></span>
+                                    <span className="font-medium text-xs leading-tight">{service.serviceName}</span>
+                                  </span>
+                                  <span className="font-bold text-gray-900 bg-gradient-to-r from-white to-gray-50 px-2 py-0.5 rounded text-xs border border-gray-200 shadow-sm whitespace-nowrap ml-2 flex-shrink-0">
+                                    {(service.quantity * service.unitPrice).toFixed(2)}€
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
+                          
+                          {/* Bouton Afficher plus si plus de 3 services */}
+                          {pack.services.length > 3 && (
+                            <button
+                              onClick={() => setSelectedPackForDetails(pack)}
+                              className="w-full mt-2 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50/50 hover:bg-indigo-50 rounded-lg transition-all duration-200 flex items-center justify-center border border-indigo-100 hover:border-indigo-200 flex-shrink-0"
+                            >
+                              <svg className="h-3 w-3 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              Voir tous les services ({pack.services.length})
+                            </button>
+                          )}
                         </div>
 
                         {/* Prix et action */}
-                        <div className="mt-auto pt-2 sm:pt-3 border-t border-white/30">
+                        <div className="mt-auto pt-2 sm:pt-3 border-t border-white/30 flex-shrink-0">
                           <div className="w-full">
                             <div className="text-center mb-2 sm:mb-3">
                               <div className="flex flex-col items-center justify-center space-y-1">
@@ -751,6 +776,104 @@ const ClientPortalPage: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Détails du Pack */}
+      {selectedPackForDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex-1 pr-4">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedPackForDetails.name}</h3>
+                  <p className="text-gray-600">{selectedPackForDetails.description}</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedPackForDetails(null)}
+                  className="text-gray-400 hover:text-gray-500 flex-shrink-0"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Services inclus */}
+              <div className="mb-6">
+                <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                  <svg className="h-5 w-5 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Services inclus ({selectedPackForDetails.services.length})
+                </h4>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="space-y-3">
+                    {selectedPackForDetails.services.map((service, i) => (
+                      <div 
+                        key={service.serviceId} 
+                        className="flex justify-between items-center p-3 bg-white rounded-lg hover:shadow-md transition-all duration-200"
+                      >
+                        <div className="flex items-center flex-1">
+                          <div className="w-2 h-2 rounded-full bg-gradient-to-r from-indigo-400 to-purple-400 mr-3 flex-shrink-0"></div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{service.serviceName}</p>
+                            <p className="text-xs text-gray-500">Quantité: {service.quantity}</p>
+                          </div>
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="text-lg font-bold text-gray-900">{(service.quantity * service.unitPrice).toFixed(2)}€</p>
+                          <p className="text-xs text-gray-500">{service.unitPrice.toFixed(2)}€/unité</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Prix et délai */}
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Prix total du pack</p>
+                    <p className="text-3xl font-bold text-gray-900">{selectedPackForDetails.totalPrice.toFixed(2)}€</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600 mb-1">Délai estimé</p>
+                    <div className="flex items-center text-gray-900">
+                      <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-xl font-bold">{selectedPackForDetails.estimatedTime}h</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Boutons d'action */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSelectedPackForDetails(null)}
+                  className="flex-1 py-3 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all duration-200"
+                >
+                  Fermer
+                </button>
+                <button
+                  onClick={() => {
+                    addToCart(selectedPackForDetails);
+                    setSelectedPackForDetails(null);
+                  }}
+                  className="flex-1 py-3 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Ajouter au panier
+                </button>
+              </div>
             </div>
           </div>
         </div>

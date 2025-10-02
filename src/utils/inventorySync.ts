@@ -1,4 +1,5 @@
 import { Order, InventoryItem, Service, ServicePack, ClientOrder } from '../types';
+import { getCurrentMappings } from './mappingStorage';
 
 // Mapping entre les services et les produits d'inventaire nécessaires
 export interface ServiceInventoryMapping {
@@ -10,52 +11,24 @@ export interface ServiceInventoryMapping {
   }[];
 }
 
-// Configuration du mapping service -> inventaire
-export const serviceInventoryMappings: ServiceInventoryMapping[] = [
-  {
-    serviceId: '1', // Lavage & Pliage
-    serviceName: 'Lavage & Pliage',
-    inventoryRequirements: [
-      { itemId: '1', quantityPerUnit: 0.1 }, // Lessive Standard - 0.1L par kg
-      { itemId: '3', quantityPerUnit: 0.05 }, // Adoucissant - 0.05L par kg
-      { itemId: '7', quantityPerUnit: 1 }, // Sacs à Linge - 1 sac par commande
-    ]
-  },
-  {
-    serviceId: '2', // Nettoyage à sec
-    serviceName: 'Nettoyage à sec',
-    inventoryRequirements: [
-      { itemId: '5', quantityPerUnit: 0.2 }, // Détachant - 0.2 bouteille par pièce
-      { itemId: '7', quantityPerUnit: 1 }, // Sacs à Linge - 1 sac par commande
-    ]
-  },
-  {
-    serviceId: '3', // Lavage Express
-    serviceName: 'Lavage Express',
-    inventoryRequirements: [
-      { itemId: '1', quantityPerUnit: 0.15 }, // Lessive Standard - 0.15L par kg (plus concentré)
-      { itemId: '3', quantityPerUnit: 0.08 }, // Adoucissant - 0.08L par kg
-      { itemId: '7', quantityPerUnit: 1 }, // Sacs à Linge - 1 sac par commande
-    ]
-  },
-  {
-    serviceId: '4', // Literie
-    serviceName: 'Literie',
-    inventoryRequirements: [
-      { itemId: '2', quantityPerUnit: 0.3 }, // Lessive Écologique - 0.3L par pièce
-      { itemId: '3', quantityPerUnit: 0.2 }, // Adoucissant - 0.2L par pièce
-      { itemId: '4', quantityPerUnit: 0.1 }, // Eau de Javel - 0.1L par pièce
-      { itemId: '7', quantityPerUnit: 1 }, // Sacs à Linge - 1 sac par commande
-    ]
-  },
-  {
-    serviceId: '5', // Repassage
-    serviceName: 'Repassage',
-    inventoryRequirements: [
-      { itemId: '6', quantityPerUnit: 2 }, // Feuilles Assouplissantes - 2 feuilles par pièce
-    ]
+// Fonction pour obtenir les mappings actuels (depuis le localStorage ou par défaut)
+export const getServiceInventoryMappings = (): ServiceInventoryMapping[] => {
+  try {
+    return getCurrentMappings();
+  } catch (error) {
+    console.warn('⚠️ Erreur lors du chargement des mappings, utilisation des mappings vides:', error);
+    // Retourner des mappings vides par défaut
+    return [
+      { serviceId: '1', serviceName: 'Lavage & Pliage', inventoryRequirements: [] },
+      { serviceId: '2', serviceName: 'Nettoyage à sec', inventoryRequirements: [] },
+      { serviceId: '3', serviceName: 'Lavage Express', inventoryRequirements: [] },
+      { serviceId: '4', serviceName: 'Literie', inventoryRequirements: [] },
+      { serviceId: '5', serviceName: 'Repassage', inventoryRequirements: [] }
+    ];
   }
-];
+};
+// Export pour compatibilité (sera remplacé par getServiceInventoryMappings())
+export const serviceInventoryMappings: ServiceInventoryMapping[] = [];
 
 // Statuts de commande qui consomment l'inventaire
 export const INVENTORY_CONSUMING_STATUSES = [
@@ -77,31 +50,45 @@ export const NON_CONSUMING_STATUSES = [
 export const calculateInventoryConsumption = (order: Order): { itemId: string; quantity: number }[] => {
   const consumption: { itemId: string; quantity: number }[] = [];
   
-  order.services.forEach(service => {
-    const mapping = serviceInventoryMappings.find(m => m.serviceId === service.id);
-    if (mapping) {
-      mapping.inventoryRequirements.forEach(req => {
-        const existingConsumption = consumption.find(c => c.itemId === req.itemId);
-        const additionalQuantity = req.quantityPerUnit * service.quantity;
+  // Vérifier si le statut de la commande consomme l'inventaire
+  if (!INVENTORY_CONSUMING_STATUSES.includes(order.status)) {
+    return consumption;
+  }
+
+  // Obtenir les mappings actuels
+  const currentMappings = getServiceInventoryMappings();
+
+  // Pour chaque service dans la commande
+  order.services.forEach(orderService => {
+    // Trouver le mapping pour ce service
+    const serviceMapping = currentMappings.find(mapping => mapping.serviceId === orderService.id);
+    
+    if (serviceMapping) {
+      // Pour chaque produit requis par ce service
+      serviceMapping.inventoryRequirements.forEach(requirement => {
+        // Calculer la quantité totale nécessaire
+        const totalQuantity = requirement.quantityPerUnit * orderService.quantity;
         
+        // Ajouter ou mettre à jour la consommation pour cet item
+        const existingConsumption = consumption.find(c => c.itemId === requirement.itemId);
         if (existingConsumption) {
-          existingConsumption.quantity += additionalQuantity;
+          existingConsumption.quantity += totalQuantity;
         } else {
           consumption.push({
-            itemId: req.itemId,
-            quantity: additionalQuantity
+            itemId: requirement.itemId,
+            quantity: totalQuantity
           });
         }
       });
     }
   });
-  
+
   return consumption;
 };
 
 // Vérifier si l'inventaire est suffisant pour une commande
 export const checkInventoryAvailability = (
-  order: Order, 
+  order: Order,
   inventoryItems: InventoryItem[]
 ): { available: boolean; shortages: { itemName: string; required: number; available: number }[] } => {
   const consumption = calculateInventoryConsumption(order);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../hooks/useApp';
 
 const ClientLoginPage: React.FC = () => {
   const { clientAccess, customers, updateClientAccess } = useApp();

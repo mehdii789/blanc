@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
+import { useDatabase } from '../../context/DatabaseContext';
 
 export const InventoryAlert: React.FC = () => {
-  const { inventoryItems } = useApp();
+  const { inventoryItems } = useDatabase();
   const navigate = useNavigate();
   
   const lowInventoryItems = inventoryItems.filter(

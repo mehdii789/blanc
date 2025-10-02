@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { mockCustomers } from '../data/mockData';
 import { ClientAccess, Customer } from '../types';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../hooks/useApp';
 
 const ClientAccessPage: React.FC = () => {
   const { clientAccess, addClientAccess, updateClientAccess, deleteClientAccess, customers } = useApp();
@@ -95,92 +95,159 @@ const ClientAccessPage: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des Accès Clients</h1>
-          <p className="text-gray-600">Gérez les codes d'accès au portail client</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">🔐 Gestion des Accès Clients</h1>
+          <p className="text-sm sm:text-base text-gray-600">Créez et gérez les codes d'accès sécurisés pour vos clients</p>
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 whitespace-nowrap"
         >
+          <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
           Créer un accès
         </button>
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-2.239" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-blue-200 w-full">
+          <div className="flex flex-col items-center text-center justify-center h-full min-h-[120px]">
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl mb-3 shadow-md">
+              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Accès</p>
-              <p className="text-2xl font-semibold text-gray-900">{clientAccess.length}</p>
-            </div>
+            <p className="text-xs font-semibold text-blue-700 mb-1 uppercase tracking-wide">Total Accès</p>
+            <p className="text-2xl sm:text-3xl font-bold text-blue-900">{clientAccess.length}</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-green-200 w-full">
+          <div className="flex flex-col items-center text-center justify-center h-full min-h-[120px]">
+            <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl mb-3 shadow-md">
+              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Actifs</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {clientAccess.filter(access => access.isActive).length}
-              </p>
-            </div>
+            <p className="text-xs font-semibold text-green-700 mb-1 uppercase tracking-wide">Actifs</p>
+            <p className="text-2xl sm:text-3xl font-bold text-green-900">
+              {clientAccess.filter(access => access.isActive).length}
+            </p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-amber-200 w-full">
+          <div className="flex flex-col items-center text-center justify-center h-full min-h-[120px]">
+            <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl mb-3 shadow-md">
+              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Inactifs</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {clientAccess.filter(access => !access.isActive).length}
-              </p>
-            </div>
+            <p className="text-xs font-semibold text-amber-700 mb-1 uppercase tracking-wide">Inactifs</p>
+            <p className="text-2xl sm:text-3xl font-bold text-amber-900">
+              {clientAccess.filter(access => !access.isActive).length}
+            </p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 8a4 4 0 11-8 0v-1a4 4 0 014-4h4a4 4 0 014 4v1a4 4 0 11-8 0z" />
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-purple-200 w-full">
+          <div className="flex flex-col items-center text-center justify-center h-full min-h-[120px]">
+            <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl mb-3 shadow-md">
+              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Connexions récentes</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {clientAccess.filter(access => access.lastLogin && 
-                  new Date(access.lastLogin).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000
-                ).length}
-              </p>
-            </div>
+            <p className="text-xs font-semibold text-purple-700 mb-1 uppercase tracking-wide">Connexions<br/>récentes</p>
+            <p className="text-2xl sm:text-3xl font-bold text-purple-900">
+              {clientAccess.filter(access => access.lastLogin && 
+                new Date(access.lastLogin).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000
+              ).length}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Table des accès */}
+      {/* Liste des accès - Version Cards pour mobile, Table pour desktop */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Liste des Accès</h2>
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900">Liste des Accès</h2>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Version Mobile - Cartes */}
+        <div className="block lg:hidden">
+          <div className="divide-y divide-gray-200">
+            {clientAccess.map((access) => (
+              <div key={access.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-gray-900">
+                      {getCustomerName(access.customerId)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {getCustomerEmail(access.customerId)}
+                    </div>
+                  </div>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    access.isActive
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {access.isActive ? 'Actif' : 'Inactif'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Code d'accès</p>
+                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                      {access.accessCode}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Créé le</p>
+                    <p className="text-xs text-gray-900">
+                      {new Date(access.createdAt).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-gray-500 mb-1">Dernière connexion</p>
+                    <p className="text-xs text-gray-900">
+                      {access.lastLogin 
+                        ? new Date(access.lastLogin).toLocaleDateString('fr-FR')
+                        : 'Jamais connecté'
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleAccessStatus(access.id)}
+                    className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      access.isActive
+                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+                    }`}
+                  >
+                    {access.isActive ? '🔒 Désactiver' : '✅ Activer'}
+                  </button>
+                  <button
+                    onClick={() => deleteAccess(access.id)}
+                    className="flex-1 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors"
+                  >
+                    🗑️ Supprimer
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Version Desktop - Table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>

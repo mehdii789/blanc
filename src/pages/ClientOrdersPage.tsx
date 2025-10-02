@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClientAccess, Customer, ClientOrder } from '../types';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../hooks/useApp';
 
 const ClientOrdersPage: React.FC = () => {
   const { clientOrders } = useApp();

@@ -1,6 +1,9 @@
 import React from 'react';
-import { useApp } from '../../context/AppContext';
+import { Menu, Bell, User } from 'lucide-react';
+import { useDatabase } from '../../context/DatabaseContext';
+import { RefreshIndicator } from '../common/RefreshIndicator';
 import NotificationSystem from '../notifications/NotificationSystem';
+import { useApp } from '../../hooks/useApp';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -29,6 +32,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         return 'Paramètres système';
       case 'client-access':
         return 'Gestion des Accès Clients';
+      case 'supabase-monitoring':
+        return 'Monitoring Supabase';
       default:
         return 'BlanchPro';
     }
@@ -62,8 +67,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         </div>
         
         <div className="flex items-center space-x-4">
+          <RefreshIndicator className="hidden md:flex" />
           <NotificationSystem />
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-600 hidden lg:block">
             {new Date().toLocaleDateString('fr-FR', {
               weekday: 'long',
               year: 'numeric',

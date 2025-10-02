@@ -1,17 +1,20 @@
-import React from 'react';
-import { useApp } from '../context/AppContext';
+import React, { useState } from 'react';
+import { useApp } from '../hooks/useApp';
 import { CustomerList } from '../components/customers/CustomerList';
 import { CustomerDetails } from '../components/customers/CustomerDetails';
 
 export const CustomersPage: React.FC = () => {
-  const { selectedCustomerId } = useApp();
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   
   return (
     <div>
       {selectedCustomerId ? (
-        <CustomerDetails customerId={selectedCustomerId} />
+        <CustomerDetails 
+          customerId={selectedCustomerId} 
+          onBack={() => setSelectedCustomerId(null)} 
+        />
       ) : (
-        <CustomerList />
+        <CustomerList onSelectCustomer={setSelectedCustomerId} />
       )}
     </div>
   );

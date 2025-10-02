@@ -1,8 +1,10 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { SupabaseAlert } from '../common/SupabaseAlert';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../hooks/useApp';
 
 interface LayoutProps {
   children: ReactNode;
@@ -11,6 +13,15 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { activeView } = useApp();
+
+  // Rafraîchissement automatique global
+  useAutoRefresh({
+    interval: 30000, // 30 secondes
+    enabled: true,
+    onRefresh: () => {
+      console.log('🔄 Rafraîchissement automatique global effectué');
+    }
+  });
 
   // Fermer le menu mobile quand la vue change
   useEffect(() => {
@@ -33,7 +44,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   // La barre de navigation mobile a été désactivée pour gagner de l'espace
 
   return (
-    <div className="flex h-screen bg-gray-50 relative">
+    <div className="flex flex-col h-screen bg-gray-50 relative">
+      <SupabaseAlert />
+      <div className="flex flex-1 bg-gray-50 relative">
       {/* Overlay pour mobile */}
       {isMobileMenuOpen && (
         <div 
@@ -45,7 +58,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Sidebar - Version Desktop */}
       <div className={`fixed md:relative z-50 transform ${
         isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      } transition-transform duration-300 ease-in-out w-64 h-full bg-white border-r border-gray-200`}>
+      } transition-transform duration-300 ease-in-out w-64 h-full bg-white border-r border-gray-200 overflow-y-auto`}>
         <Sidebar />
       </div>
       
@@ -83,6 +96,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </div>
       )} */}
+      </div>
     </div>
   );
 };

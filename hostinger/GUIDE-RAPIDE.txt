@@ -1,0 +1,32 @@
+# CONFIGURATION HOSTINGER - GUIDE COMPLET
+
+## ETAPE 1 : Creer la base MySQL sur Hostinger
+1. hPanel > Bases de donnees > MySQL > Creer
+2. Notez : nom, user, password, host
+
+## ETAPE 2 : Modifier hostinger/api/config.php
+Remplacez :
+  - DB_NAME : votre nom de base
+  - DB_USER : votre utilisateur
+  - DB_PASS : votre mot de passe
+  - ALLOWED_ORIGINS : votre domaine
+
+## ETAPE 3 : Modifier .env.production
+Remplacez votre-domaine.com par votre vrai domaine
+
+## ETAPE 4 : Importer schema.sql dans phpMyAdmin
+
+## ETAPE 5 : Build
+npm run build
+
+## ETAPE 6 : Upload sur Hostinger
+- public_html/ <- contenu de dist/
+- public_html/api/ <- fichiers de hostinger/api/
+- public_html/.htaccess <- hostinger/.htaccess
+
+## ETAPE 7 : Permissions
+- Dossiers : 755
+- Fichiers PHP : 644
+
+## ETAPE 8 : SSL
+hPanel > Securite > SSL > Activer

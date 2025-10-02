@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
+import { useDatabase } from '../../context/DatabaseContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { Order } from '../../types';
 
@@ -9,7 +9,7 @@ interface RecentOrdersProps {
 }
 
 export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
-  const { customers, setSelectedOrderId } = useApp();
+  const { customers } = useDatabase();
   const navigate = useNavigate();
   
   const recentOrders = [...orders]
@@ -36,7 +36,6 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
   };
   
   const handleViewOrder = (orderId: string) => {
-    setSelectedOrderId(orderId);
     navigate(`/orders/${orderId}`);
   };
   

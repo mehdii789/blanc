@@ -1,23 +1,14 @@
 import React, { useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../hooks/useApp';
 import { OrderList } from '../components/orders/OrderList';
 import { OrderDetails } from '../components/orders/OrderDetails';
 
 export const OrdersPage: React.FC = () => {
   const { orderId } = useParams<{ orderId?: string }>();
   const navigate = useNavigate();
-  const { setSelectedOrderId } = useApp();
 
-  // Mettre à jour l'état selectedOrderId lorsque l'URL change
-  useEffect(() => {
-    if (orderId) {
-      setSelectedOrderId(orderId);
-    } else {
-      // S'assurer qu'aucun ordre n'est sélectionné quand on est sur la liste
-      setSelectedOrderId(null);
-    }
-  }, [orderId, setSelectedOrderId]);
+  // La gestion de l'ordre sélectionné se fait maintenant via l'URL
   
   // Fonction pour gérer le retour à la liste
   const handleBackToList = useCallback(() => {

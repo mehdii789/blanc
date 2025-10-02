@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../hooks/useApp';
 import { Phone, Mail, User, Edit, Trash2, Plus } from 'lucide-react';
 import { EmployeeForm } from '../components/employees/EmployeeForm';
 import { Employee } from '../types';

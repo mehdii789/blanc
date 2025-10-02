@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, Package, TrendingDown } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../hooks/useApp';
 
 export const InventoryAlerts: React.FC = () => {
   const { getLowStockItems, getOutOfStockItems } = useApp();

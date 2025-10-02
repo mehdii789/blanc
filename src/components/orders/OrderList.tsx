@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../hooks/useApp';
 import { Search, Plus, Trash2, CreditCard, Banknote, Building2, FileText, Eye } from 'lucide-react';
 import { OrderStatus, PaymentMethod, Order, ClientOrder } from '../../types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
@@ -30,11 +30,21 @@ const OrderList = () => {
       customerId: clientOrder.customerId,
       services: clientOrder.packs.map(pack => {
         const servicePack = servicePacks.find(sp => sp.id === pack.packId);
+        
+        // Créer une description détaillée avec les services inclus
+        let description = servicePack?.description || 'Pack de services';
+        if (servicePack && servicePack.services.length > 0) {
+          const servicesList = servicePack.services
+            .map(s => `${s.serviceName} (x${s.quantity})`)
+            .join(', ');
+          description += ` - Inclus: ${servicesList}`;
+        }
+        
         return {
           id: pack.packId,
           name: pack.packName,
           price: pack.unitPrice,
-          description: servicePack?.description || 'Pack de services',
+          description: description,
           estimatedTime: servicePack?.estimatedTime || 24,
           quantity: pack.quantity
         };

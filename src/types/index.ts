@@ -128,6 +128,7 @@ export interface ServicePack {
   name: string;
   description: string;
   services: PackService[];
+  inventoryItems?: PackInventoryItem[];
   totalPrice: number;
   estimatedTime: number;
   isActive: boolean;
@@ -139,6 +140,13 @@ export interface PackService {
   serviceName: string;
   quantity: number;
   unitPrice: number;
+}
+
+export interface PackInventoryItem {
+  itemId: string;
+  itemName: string;
+  quantityPerPack: number;
+  unit: string;
 }
 
 export type PackCategory = 'standard' | 'express' | 'premium' | 'literie' | 'professionnel';

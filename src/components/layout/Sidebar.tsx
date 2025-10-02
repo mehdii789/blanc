@@ -1,4 +1,4 @@
-import React from 'react';
+import { useDatabase } from '../../context/DatabaseContext';
 import { 
   Home, 
   Users, 
@@ -10,7 +10,9 @@ import {
   UserPlus,
   FileText,
   Globe,
-  Key
+  Key,
+  Cog,
+  Package
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -57,6 +59,8 @@ export const Sidebar: React.FC = () => {
     { icon: <FileText size={20} />, label: 'Factures', view: 'invoices' },
     { icon: <BarChart2 size={20} />, label: 'Rapports', view: 'reports' },
     { icon: <Key size={20} />, label: 'Accès Clients', view: 'client-access' },
+    { icon: <Package size={20} />, label: 'Gestion des Packs', view: 'pack-management' },
+    { icon: <Cog size={20} />, label: 'Services & Produits', view: 'simple-service-config' },
     { icon: <Settings size={20} />, label: 'Paramètres', view: 'settings' },
   ];
 
@@ -64,15 +68,17 @@ export const Sidebar: React.FC = () => {
   const currentPath = location.pathname.split('/')[1] || 'dashboard';
 
   return (
-    <div className="w-64 h-full bg-white border-r border-gray-200 p-4 flex flex-col">
-      <Link to="/" className="mb-8 flex items-center gap-3 px-4">
-        <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
-          <ClipboardList size={20} className="text-white" />
-        </div>
-        <h1 className="text-xl font-bold text-gray-900">BlanchPro</h1>
-      </Link>
+    <div className="w-64 h-full bg-white p-4 flex flex-col">
+      <div className="flex-shrink-0 mb-6">
+        <Link to="/" className="flex items-center gap-3 px-4">
+          <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
+            <ClipboardList size={20} className="text-white" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">BlanchPro</h1>
+        </Link>
+      </div>
       
-      <div className="flex flex-col gap-1">
+      <div className="flex-1 overflow-y-auto flex flex-col gap-1 pb-4">
         {menuItems.map((item) => {
           const isActive = currentPath === item.view || 
                          (currentPath === '' && item.view === 'dashboard');
@@ -89,7 +95,7 @@ export const Sidebar: React.FC = () => {
         })}
       </div>
       
-      <div className="mt-auto pt-4 border-t border-gray-200">
+      <div className="flex-shrink-0 pt-4 border-t border-gray-200 bg-white">
         <div className="mb-4">
           <a
             href="/client-login"

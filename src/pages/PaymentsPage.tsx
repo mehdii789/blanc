@@ -1,5 +1,5 @@
 import React, { useState, useMemo, Fragment } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../hooks/useApp';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { 
   CreditCard, 

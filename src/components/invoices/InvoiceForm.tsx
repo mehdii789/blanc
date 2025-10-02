@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../hooks/useApp';
 import { formatCurrency } from '../../utils/formatters';
 import { Invoice, InvoiceItem } from '../../types';
 import { useEffect } from 'react';

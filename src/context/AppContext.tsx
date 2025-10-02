@@ -111,6 +111,7 @@ interface AppContextType {
   updateClientOrder: (order: ClientOrder) => void;
   deleteClientOrder: (id: string) => void;
   checkClientOrderInventory: (order: ClientOrder) => { available: boolean; shortages: { itemName: string; required: number; available: number }[] };
+  resetToMockData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -158,6 +159,19 @@ const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
     console.error(`Erreur lors du chargement de ${key} depuis le localStorage:`, error);
     return defaultValue;
   }
+};
+
+// Fonction pour réinitialiser les données aux valeurs mockées par défaut
+const resetToMockData = () => {
+  localStorage.removeItem('customers');
+  localStorage.removeItem('orders');
+  localStorage.removeItem('invoices');
+  localStorage.removeItem('employees');
+  localStorage.removeItem('inventory');
+  localStorage.removeItem('clientAccess');
+  localStorage.removeItem('servicePacks');
+  localStorage.removeItem('clientOrders');
+  window.location.reload();
 };
 
 // Fonction pour sauvegarder les données dans le localStorage
@@ -886,6 +900,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateClientOrder,
     deleteClientOrder,
     checkClientOrderInventory,
+    resetToMockData,
   };
 
   return (

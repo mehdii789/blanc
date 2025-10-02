@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, ChevronDown, Clock, Filter } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { useDatabase } from '../../context/DatabaseContext';
 
 interface DateRangeSelectorProps {
   className?: string;
 }
 
 export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({ className = '' }) => {
-  const { dateRange, setDateRange, setSelectedDate } = useApp();
+  const { dateRange, setDateRange } = useDatabase();
   const [isOpen, setIsOpen] = useState(false);
   const [isCustomOpen, setIsCustomOpen] = useState(false);
   const [tempRange, setTempRange] = useState(dateRange);
@@ -92,7 +92,6 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({ className 
   const handlePresetSelect = (preset: typeof presetRanges[0]) => {
     const newRange = preset.getValue();
     setDateRange(newRange);
-    setSelectedDate(newRange.start);
     setIsOpen(false);
   };
 
@@ -111,7 +110,6 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({ className 
   const applyCustomRange = () => {
     if (tempRange.start <= tempRange.end) {
       setDateRange(tempRange);
-      setSelectedDate(tempRange.start);
       setIsCustomOpen(false);
     }
   };

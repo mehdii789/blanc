@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../hooks/useApp';
 import { InvoicesList } from '../components/invoices/InvoicesList';
 import { InvoiceForm } from '../components/invoices/InvoiceForm';
 import { Invoice } from '../types';
 
 const InvoicesPage: React.FC = () => {
-  const { invoices, customers, addInvoice, updateInvoice, deleteInvoice, generatePdf } = useApp();
+  const { invoices, customers, addInvoice, updateInvoice, deleteInvoice } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState<Invoice | null>(null);
 
@@ -71,7 +71,7 @@ const InvoicesPage: React.FC = () => {
         customers={customers}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onGeneratePdf={generatePdf}
+        onGeneratePdf={() => console.log('PDF generation not implemented yet')}
         onCreateNew={() => setShowForm(true)}
       />
     </div>
